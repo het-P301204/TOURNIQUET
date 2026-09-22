@@ -1,0 +1,2322 @@
+{
+  "headline": "The plan fits the 3d 11h window with 3d 8h to spare. 5 artifacts have an outcome that cannot be determined from the plan as written. The order the plan is written in preserves as much as the recommended order does.",
+  "analysis_version": "tourniquet/1",
+  "analysed_at": "2026-09-22T12:00:00Z",
+  "plan": {
+    "plan_id": "PLN-2277",
+    "name": "EDGE-FW-02 — management-plane advisory, vendor firmware procedure",
+    "asset": {
+      "asset_id": "EDGE-FW-02",
+      "name": "edge-fw-02.dc1",
+      "type": "network_appliance",
+      "environment": "Production",
+      "owner": "Network Engineering",
+      "description": "Perimeter firewall, datacentre one. Active member of an HA pair.",
+      "notes": "On-device log retention is short and has not been measured."
+    },
+    "vulnerability": {
+      "reference": "VULN-2026-0398 (synthetic)",
+      "title": "Authentication bypass in the management interface",
+      "summary": "A vendor advisory describes an authentication bypass reachable from the management network. The advisory does not describe indicators, and the remediation is a full firmware update.",
+      "suspected_compromise": false,
+      "notes": "The management interface is reachable from the management VLAN only. Whether it was reached cannot currently be determined."
+    },
+    "tier": {
+      "label": "High — 14 day",
+      "source": "Vulnerability management, vendor-advisory tier",
+      "window_hours": 336,
+      "external": true,
+      "notes": null
+    },
+    "deadline": {
+      "issued_at": "2026-09-12T09:00:00Z",
+      "due_at": "2026-09-26T09:00:00Z",
+      "plan_start": "2026-09-22T22:00:00Z",
+      "label": "14-day vendor advisory window"
+    },
+    "steps": [
+      {
+        "step_id": "s019",
+        "action_id": "capture_appliance_state",
+        "override_minutes": null,
+        "note": null
+      },
+      {
+        "step_id": "s020",
+        "action_id": "firmware_update",
+        "override_minutes": null,
+        "note": null
+      },
+      {
+        "step_id": "s021",
+        "action_id": "verify_remediation",
+        "override_minutes": null,
+        "note": null
+      }
+    ],
+    "evidence": [
+      {
+        "artifact_id": "conntrack_table",
+        "priority": "required",
+        "included": true,
+        "override_minutes": null
+      },
+      {
+        "artifact_id": "appliance_syslog",
+        "priority": "required",
+        "included": true,
+        "override_minutes": null
+      },
+      {
+        "artifact_id": "service_configuration",
+        "priority": "required",
+        "included": true,
+        "override_minutes": null
+      },
+      {
+        "artifact_id": "installed_package_state",
+        "priority": "required",
+        "included": true,
+        "override_minutes": null
+      },
+      {
+        "artifact_id": "centralised_logs",
+        "priority": "recommended",
+        "included": true,
+        "override_minutes": null
+      },
+      {
+        "artifact_id": "interactive_sessions",
+        "priority": "recommended",
+        "included": true,
+        "override_minutes": null
+      },
+      {
+        "artifact_id": "running_processes",
+        "priority": "recommended",
+        "included": true,
+        "override_minutes": null
+      },
+      {
+        "artifact_id": "active_connections",
+        "priority": "recommended",
+        "included": true,
+        "override_minutes": null
+      },
+      {
+        "artifact_id": "listening_sockets",
+        "priority": "optional",
+        "included": true,
+        "override_minutes": null
+      },
+      {
+        "artifact_id": "service_runtime_state",
+        "priority": "recommended",
+        "included": true,
+        "override_minutes": null
+      }
+    ],
+    "accepted_losses": [],
+    "overrides": [],
+    "contingency_buffer_minutes": 60,
+    "verification_minutes": 30,
+    "notes": "The window is comfortable. The problem is not time; it is that nobody can say what the procedure touches."
+  },
+  "artifacts": [
+    {
+      "artifact_id": "running_processes",
+      "name": "Running process list",
+      "tier": "process_state",
+      "description": "Processes with command lines, parents, owning users and start times, as a point-in-time list.",
+      "applies_to": "all",
+      "collection": {
+        "label": "Process enumeration to file",
+        "estimated_minutes": 3,
+        "requires_live_host": true,
+        "observer_effect": "The collection tool appears in its own output.",
+        "note": null
+      },
+      "default_priority": "required",
+      "answers": "What was actually running, under whose account, launched by what? The parent chain is usually the first thing an investigation asks for.",
+      "tags": [
+        "process",
+        "host_state"
+      ],
+      "confidence": "high",
+      "notes": null
+    },
+    {
+      "artifact_id": "service_runtime_state",
+      "name": "Service runtime state",
+      "tier": "process_state",
+      "description": "The running configuration, uptime, worker set and in-memory state of the affected service, as distinct from its configuration on disk.",
+      "applies_to": "all",
+      "collection": {
+        "label": "Service status and runtime configuration dump",
+        "estimated_minutes": 2,
+        "requires_live_host": true,
+        "observer_effect": null,
+        "note": null
+      },
+      "default_priority": "recommended",
+      "answers": "Was the service running the configuration that is on disk, or something that was changed at runtime and never written down?",
+      "tags": [
+        "process",
+        "service",
+        "host_state"
+      ],
+      "confidence": "high",
+      "notes": null
+    },
+    {
+      "artifact_id": "active_connections",
+      "name": "Established network connections",
+      "tier": "network_state",
+      "description": "The socket table: established connections with remote addresses, ports and owning processes.",
+      "applies_to": "all",
+      "collection": {
+        "label": "Socket table enumeration",
+        "estimated_minutes": 2,
+        "requires_live_host": true,
+        "observer_effect": null,
+        "note": null
+      },
+      "default_priority": "required",
+      "answers": "Where was this host talking to, right now, and which process owned the conversation? A closed connection leaves no local record of itself.",
+      "tags": [
+        "network",
+        "host_state"
+      ],
+      "confidence": "high",
+      "notes": null
+    },
+    {
+      "artifact_id": "listening_sockets",
+      "name": "Listening sockets",
+      "tier": "network_state",
+      "description": "Bound ports and the processes listening on them.",
+      "applies_to": "all",
+      "collection": {
+        "label": "Listener enumeration",
+        "estimated_minutes": 2,
+        "requires_live_host": true,
+        "observer_effect": null,
+        "note": null
+      },
+      "default_priority": "recommended",
+      "answers": "Was anything listening that should not have been — a backdoor port, an unexpected bind?",
+      "tags": [
+        "network",
+        "host_state"
+      ],
+      "confidence": "high",
+      "notes": null
+    },
+    {
+      "artifact_id": "conntrack_table",
+      "name": "Connection-tracking table",
+      "tier": "network_state",
+      "description": "The stateful firewall or appliance session table: flows in progress, with translation and policy decisions.",
+      "applies_to": [
+        "network_appliance"
+      ],
+      "collection": {
+        "label": "Session table export",
+        "estimated_minutes": 4,
+        "requires_live_host": true,
+        "observer_effect": null,
+        "note": null
+      },
+      "default_priority": "required",
+      "answers": "Which flows were in progress through this device, and what did the policy do with them? The table is rebuilt from empty on reload.",
+      "tags": [
+        "network",
+        "appliance"
+      ],
+      "confidence": "medium",
+      "notes": "Export format and completeness vary considerably between vendors."
+    },
+    {
+      "artifact_id": "interactive_sessions",
+      "name": "Logged-on sessions",
+      "tier": "session_state",
+      "description": "Interactive and remote sessions currently established, with their origin.",
+      "applies_to": "all",
+      "collection": {
+        "label": "Session enumeration",
+        "estimated_minutes": 2,
+        "requires_live_host": true,
+        "observer_effect": null,
+        "note": null
+      },
+      "default_priority": "required",
+      "answers": "Who is logged in right now, from where, and since when?",
+      "tags": [
+        "session",
+        "host_state"
+      ],
+      "confidence": "high",
+      "notes": null
+    },
+    {
+      "artifact_id": "installed_package_state",
+      "name": "Installed package and version state",
+      "tier": "disk_artifact",
+      "description": "The installed package set, versions, and the package manager transaction history. On an appliance, the running firmware version and its upgrade history.",
+      "applies_to": [
+        "windows_workstation",
+        "windows_server",
+        "linux_server",
+        "cloud_vm",
+        "database_server",
+        "application_server",
+        "container",
+        "kubernetes_workload",
+        "network_appliance"
+      ],
+      "collection": {
+        "label": "Package inventory and history export",
+        "estimated_minutes": 3,
+        "requires_live_host": false,
+        "observer_effect": null,
+        "note": null
+      },
+      "default_priority": "required",
+      "answers": "What was the vulnerable version, and what else was installed or changed recently? This is also the before-state the patch will overwrite.",
+      "tags": [
+        "disk",
+        "config"
+      ],
+      "confidence": "high",
+      "notes": null
+    },
+    {
+      "artifact_id": "service_configuration",
+      "name": "Service configuration on disk",
+      "tier": "disk_artifact",
+      "description": "The configuration files the affected service reads at start-up.",
+      "applies_to": [
+        "windows_workstation",
+        "windows_server",
+        "linux_server",
+        "cloud_vm",
+        "database_server",
+        "application_server",
+        "container",
+        "kubernetes_workload",
+        "network_appliance"
+      ],
+      "collection": {
+        "label": "Configuration copy with hashes",
+        "estimated_minutes": 5,
+        "requires_live_host": false,
+        "observer_effect": null,
+        "note": null
+      },
+      "default_priority": "recommended",
+      "answers": "Was the configuration tampered with? Also the record of what the service was before the change you are about to make.",
+      "tags": [
+        "disk",
+        "config"
+      ],
+      "confidence": "high",
+      "notes": null
+    },
+    {
+      "artifact_id": "centralised_logs",
+      "name": "Centralised log copies",
+      "tier": "long_term_record",
+      "description": "The same events as held off the host by the logging platform.",
+      "applies_to": "all",
+      "collection": {
+        "label": "Query and export from the log platform",
+        "estimated_minutes": 10,
+        "requires_live_host": false,
+        "observer_effect": null,
+        "note": "Held off the host, so nothing done to the host destroys them."
+      },
+      "default_priority": "recommended",
+      "answers": "What survived off the host? Usually the only copy an attacker with host access could not edit.",
+      "tags": [
+        "log",
+        "offhost"
+      ],
+      "confidence": "high",
+      "notes": "Bounded by the platform retention window, which may be shorter than the incident."
+    },
+    {
+      "artifact_id": "appliance_syslog",
+      "name": "Appliance log export",
+      "tier": "long_term_record",
+      "description": "Logs held on the appliance and, where configured, forwarded off it.",
+      "applies_to": [
+        "network_appliance"
+      ],
+      "collection": {
+        "label": "Log export before maintenance",
+        "estimated_minutes": 8,
+        "requires_live_host": true,
+        "observer_effect": null,
+        "note": "On-device buffers on appliances are frequently small and frequently cleared by maintenance."
+      },
+      "default_priority": "required",
+      "answers": "What did the device record before the maintenance window began?",
+      "tags": [
+        "log",
+        "appliance"
+      ],
+      "confidence": "medium",
+      "notes": "On-device retention varies enormously; some devices hold hours, some hold minutes."
+    }
+  ],
+  "actions": [
+    {
+      "action_id": "capture_process_state",
+      "name": "Snapshot running state",
+      "category": "capture",
+      "description": "Process list, loaded modules, open handles and service runtime configuration.",
+      "estimated_minutes": 5,
+      "destructive_level": "none",
+      "reversible": true,
+      "applies_to": "all",
+      "effects": [],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "A capture reads. It does not remediate anything and destroys nothing."
+      },
+      "captures": [
+        "running_processes",
+        "loaded_modules",
+        "open_file_handles",
+        "service_runtime_state"
+      ],
+      "prerequisites": [],
+      "confidence": "high",
+      "reference": null,
+      "unknown_impact": false,
+      "notes": "Cheap, fast, and the step most often skipped because it feels redundant next to a memory image. It is not: it is readable immediately."
+    },
+    {
+      "action_id": "capture_network_state",
+      "name": "Snapshot network state",
+      "category": "capture",
+      "description": "Socket table, listeners, neighbour cache and resolver cache.",
+      "estimated_minutes": 4,
+      "destructive_level": "none",
+      "reversible": true,
+      "applies_to": "all",
+      "effects": [],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "A capture reads. It does not remediate anything and destroys nothing."
+      },
+      "captures": [
+        "active_connections",
+        "listening_sockets",
+        "arp_neighbour_cache",
+        "dns_resolver_cache"
+      ],
+      "prerequisites": [],
+      "confidence": "high",
+      "reference": null,
+      "unknown_impact": false,
+      "notes": null
+    },
+    {
+      "action_id": "capture_sessions",
+      "name": "Enumerate sessions and tickets",
+      "category": "capture",
+      "description": "Logged-on sessions, plus the cached Kerberos tickets where the platform has them. Applies everywhere something can be logged in; the ticket cache is host-only and is filtered out where it does not apply.",
+      "estimated_minutes": 4,
+      "destructive_level": "none",
+      "reversible": true,
+      "applies_to": "all",
+      "effects": [],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "A capture reads. It does not remediate anything and destroys nothing."
+      },
+      "captures": [
+        "interactive_sessions",
+        "kerberos_tickets"
+      ],
+      "prerequisites": [],
+      "confidence": "high",
+      "reference": null,
+      "unknown_impact": false,
+      "notes": null
+    },
+    {
+      "action_id": "capture_offhost_logs",
+      "name": "Export off-host records",
+      "category": "capture",
+      "description": "Pull the centralised log copies and endpoint telemetry for the affected window.",
+      "estimated_minutes": 15,
+      "destructive_level": "none",
+      "reversible": true,
+      "applies_to": "all",
+      "effects": [],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "A capture reads. It does not remediate anything and destroys nothing."
+      },
+      "captures": [
+        "centralised_logs",
+        "edr_telemetry"
+      ],
+      "prerequisites": [],
+      "confidence": "high",
+      "reference": null,
+      "unknown_impact": false,
+      "notes": "These records are off the host, so nothing done to the host destroys them. They can usually wait — the reason to do them early is platform retention, not remediation."
+    },
+    {
+      "action_id": "capture_appliance_state",
+      "name": "Export appliance state",
+      "category": "capture",
+      "description": "Export the session table, the on-device logs, the running configuration and the firmware version before maintenance begins.",
+      "estimated_minutes": 12,
+      "destructive_level": "none",
+      "reversible": true,
+      "applies_to": [
+        "network_appliance"
+      ],
+      "effects": [],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "A capture reads. It does not remediate anything and destroys nothing."
+      },
+      "captures": [
+        "conntrack_table",
+        "appliance_syslog",
+        "service_configuration",
+        "installed_package_state"
+      ],
+      "prerequisites": [],
+      "confidence": "medium",
+      "reference": null,
+      "unknown_impact": false,
+      "notes": null
+    },
+    {
+      "action_id": "service_restart",
+      "name": "Restart affected service",
+      "category": "service",
+      "description": "Stop and start the affected service. The most common remediation step, and the one most often assumed to be harmless.",
+      "estimated_minutes": 4,
+      "destructive_level": "moderate",
+      "reversible": true,
+      "applies_to": "all",
+      "effects": [
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "process_memory_target"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "The process whose memory you wanted is replaced by a fresh one. Its address space is returned to the operating system."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "service_runtime_state"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "The running configuration is rebuilt from disk. Anything set at runtime and never written down is gone."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "decrypted_key_material"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "Secrets held by the service exist only while it is running."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "injected_code_regions"
+          },
+          "impact": "destroys",
+          "confidence": "medium",
+          "rationale": "Code injected into the restarted service goes with it. Injection into any other process on the host is untouched, so this is a partial loss that the plan cannot narrow further."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "open_file_handles"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "A file the attacker unlinked but left open by this service becomes unrecoverable the moment the process ends."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "active_connections"
+          },
+          "impact": "modifies",
+          "confidence": "high",
+          "rationale": "Connections owned by the service are torn down. The rest of the socket table survives, so what you collect afterwards is a partial picture that looks like a complete one."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "listening_sockets"
+          },
+          "impact": "modifies",
+          "confidence": "high",
+          "rationale": "The service unbinds and rebinds. An unexpected extra listener may not come back."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "running_processes"
+          },
+          "impact": "modifies",
+          "confidence": "high",
+          "rationale": "Process identifiers and start times for the service change, which breaks the parent chain from before the restart."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "shared_memory_segments"
+          },
+          "impact": "may_invalidate",
+          "confidence": "medium",
+          "rationale": "Segments owned by the service may be released when it exits."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "app_session_store"
+          },
+          "impact": "unknown",
+          "confidence": "unknown",
+          "rationale": "If the session store is held in the application process it is destroyed; if it is an external cache or table it is untouched. Which one this deployment uses is not recorded here."
+        }
+      ],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches."
+      },
+      "captures": [],
+      "prerequisites": [],
+      "confidence": "high",
+      "reference": "Synthetic mapping. Derived from how service managers replace processes.",
+      "unknown_impact": false,
+      "notes": "A restart is frequently treated as a non-event. It is the single cheapest way to destroy the memory of the process you are investigating."
+    },
+    {
+      "action_id": "host_reboot",
+      "name": "Reboot host",
+      "category": "reboot",
+      "description": "Restart the operating system.",
+      "estimated_minutes": 8,
+      "destructive_level": "high",
+      "reversible": false,
+      "applies_to": [
+        "windows_workstation",
+        "windows_server",
+        "linux_server",
+        "cloud_vm",
+        "database_server",
+        "application_server",
+        "network_appliance"
+      ],
+      "effects": [
+        {
+          "target": {
+            "kind": "tier",
+            "tier": "volatile_memory"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "Memory contents do not survive a reset. This is the clearest evidence-destroying relationship in the library."
+        },
+        {
+          "target": {
+            "kind": "tier",
+            "tier": "process_state"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "Every process on the host is replaced. Nothing about the previous set survives in memory."
+        },
+        {
+          "target": {
+            "kind": "tier",
+            "tier": "network_state"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "The network stack reinitialises. Sockets, caches and neighbour tables all start empty."
+        },
+        {
+          "target": {
+            "kind": "tier",
+            "tier": "session_state"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "Sessions and cached tickets on the host do not survive the reset."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "shared_memory_segments"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "Memory-backed filesystems are memory. They look like disk and behave like RAM."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "container_writable_layer"
+          },
+          "impact": "unknown",
+          "confidence": "unknown",
+          "rationale": "Whether the layer survives depends on whether the orchestrator restarts the existing container or schedules a new one. That is a property of your restart policy, not of the reboot."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "temp_directory_contents"
+          },
+          "impact": "may_invalidate",
+          "confidence": "medium",
+          "rationale": "Some platforms clear temporary paths at boot and some do not. Treat survival as configuration-dependent rather than assured."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "swap_and_pagefile"
+          },
+          "impact": "modifies",
+          "confidence": "medium",
+          "rationale": "The swap area is reinitialised or reused on boot. Where swap is encrypted with an ephemeral key, its contents become unreadable even though the file survives."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "local_event_logs"
+          },
+          "impact": "modifies",
+          "confidence": "high",
+          "rationale": "The log gains shutdown and boot records, and anything buffered but not yet flushed at shutdown is lost."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "file_timestamps"
+          },
+          "impact": "modifies",
+          "confidence": "medium",
+          "rationale": "Boot activity updates access and modification times across system paths, adding noise to a timeline that has not yet been captured."
+        },
+        {
+          "target": {
+            "kind": "tier",
+            "tier": "disk_artifact"
+          },
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Stored state survives a reset. A reboot is not a rebuild."
+        },
+        {
+          "target": {
+            "kind": "tag",
+            "tag": "offhost"
+          },
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Records already held off the host cannot be reached by anything done to the host."
+        }
+      ],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches."
+      },
+      "captures": [],
+      "prerequisites": [],
+      "confidence": "high",
+      "reference": "Synthetic mapping. Derived from the definition of a power-cycle.",
+      "unknown_impact": false,
+      "notes": null
+    },
+    {
+      "action_id": "host_shutdown",
+      "name": "Shut down host",
+      "category": "reboot",
+      "description": "Power the host off, typically because a maintenance procedure requires it.",
+      "estimated_minutes": 5,
+      "destructive_level": "high",
+      "reversible": "unknown",
+      "applies_to": [
+        "windows_workstation",
+        "windows_server",
+        "linux_server",
+        "cloud_vm",
+        "database_server",
+        "application_server",
+        "network_appliance"
+      ],
+      "effects": [
+        {
+          "target": {
+            "kind": "tier",
+            "tier": "volatile_memory"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "Memory contents do not survive loss of power."
+        },
+        {
+          "target": {
+            "kind": "tier",
+            "tier": "process_state"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "Nothing is running afterwards."
+        },
+        {
+          "target": {
+            "kind": "tier",
+            "tier": "network_state"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "Nothing is connected afterwards."
+        },
+        {
+          "target": {
+            "kind": "tier",
+            "tier": "session_state"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "Sessions on the host end with the host."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "shared_memory_segments"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "Memory-backed filesystems are memory."
+        },
+        {
+          "target": {
+            "kind": "tier",
+            "tier": "disk_artifact"
+          },
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Stored state survives a clean shutdown, and the disk can still be imaged offline."
+        },
+        {
+          "target": {
+            "kind": "tag",
+            "tag": "offhost"
+          },
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Records already held off the host are unaffected."
+        }
+      ],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches."
+      },
+      "captures": [],
+      "prerequisites": [],
+      "confidence": "high",
+      "reference": "Synthetic mapping.",
+      "unknown_impact": false,
+      "notes": "A shutdown ends every opportunity that required a live host. Anything with `requires_live_host` that has not been collected by this point cannot be collected at all."
+    },
+    {
+      "action_id": "package_upgrade",
+      "name": "Apply package upgrade",
+      "category": "patch",
+      "description": "Upgrade the vulnerable package through the platform package manager.",
+      "estimated_minutes": 12,
+      "destructive_level": "low",
+      "reversible": true,
+      "applies_to": "all",
+      "effects": [
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "installed_package_state"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "The on-disk state of the vulnerable version is overwritten. This is the record of what you were actually exposed to, and the patch is what removes it — which is why it is captured before rather than after."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "file_timestamps"
+          },
+          "impact": "modifies",
+          "confidence": "high",
+          "rationale": "Every file the upgrade touches gets new times, over the top of the timeline you wanted."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "service_configuration"
+          },
+          "impact": "may_invalidate",
+          "confidence": "medium",
+          "rationale": "Upgrades may replace, merge or back up configuration files. A tampered configuration can be quietly normalised."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "disk_image"
+          },
+          "impact": "may_invalidate",
+          "confidence": "medium",
+          "rationale": "An image taken afterwards is of the patched system, not the exposed one."
+        }
+      ],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches."
+      },
+      "captures": [],
+      "prerequisites": [],
+      "confidence": "high",
+      "reference": "Synthetic mapping.",
+      "unknown_impact": false,
+      "notes": "Modelled as the package operation alone. Most package managers also restart the service; where yours does, add the restart as its own step so its footprint is counted."
+    },
+    {
+      "action_id": "config_change",
+      "name": "Apply configuration change",
+      "category": "config",
+      "description": "Change the service configuration — a mitigation, a hardening step, or disabling the vulnerable feature.",
+      "estimated_minutes": 6,
+      "destructive_level": "low",
+      "reversible": true,
+      "applies_to": "all",
+      "effects": [
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "service_configuration"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "The pre-change configuration is overwritten. If it had been tampered with, the tampering is what you have just deleted."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "file_timestamps"
+          },
+          "impact": "modifies",
+          "confidence": "medium",
+          "rationale": "The configuration files carry new modification times."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "service_runtime_state"
+          },
+          "impact": "modifies",
+          "confidence": "medium",
+          "rationale": "The running configuration diverges from what it was when the incident occurred."
+        }
+      ],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches."
+      },
+      "captures": [],
+      "prerequisites": [],
+      "confidence": "high",
+      "reference": "Synthetic mapping.",
+      "unknown_impact": false,
+      "notes": null
+    },
+    {
+      "action_id": "credential_rotate",
+      "name": "Rotate credential",
+      "category": "credential",
+      "description": "Issue a new secret for the affected service account, key or certificate.",
+      "estimated_minutes": 10,
+      "destructive_level": "low",
+      "reversible": false,
+      "applies_to": "all",
+      "effects": [
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "active_access_tokens"
+          },
+          "impact": "may_invalidate",
+          "confidence": "high",
+          "rationale": "Rotation is the point of the action, but it also ends your ability to observe what the old credential could still reach. Inventory the live tokens first or the blast radius becomes unknowable."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "identity_signin_logs"
+          },
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Sign-in history is a record of the past. Changing a secret does not edit it."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "identity_audit_logs"
+          },
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "The directory audit trail is appended to, not rewritten."
+        }
+      ],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches."
+      },
+      "captures": [],
+      "prerequisites": [],
+      "confidence": "medium",
+      "reference": "Synthetic mapping.",
+      "unknown_impact": false,
+      "notes": "Rotation does not destroy stored records. What it destroys is visibility: after it, nobody can enumerate what the compromised credential was still able to do."
+    },
+    {
+      "action_id": "session_terminate",
+      "name": "Terminate active sessions",
+      "category": "session",
+      "description": "Force-close interactive and remote sessions on the affected asset or principal.",
+      "estimated_minutes": 3,
+      "destructive_level": "moderate",
+      "reversible": false,
+      "applies_to": "all",
+      "effects": [
+        {
+          "target": {
+            "kind": "tier",
+            "tier": "session_state"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "The sessions are the thing being ended."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "active_connections"
+          },
+          "impact": "modifies",
+          "confidence": "high",
+          "rationale": "Connections carrying those sessions close."
+        },
+        {
+          "target": {
+            "kind": "tag",
+            "tag": "offhost"
+          },
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Off-host records are unaffected."
+        }
+      ],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches."
+      },
+      "captures": [],
+      "prerequisites": [],
+      "confidence": "high",
+      "reference": "Synthetic mapping.",
+      "unknown_impact": false,
+      "notes": null
+    },
+    {
+      "action_id": "firmware_update",
+      "name": "Apply vendor firmware update",
+      "category": "firmware",
+      "description": "Run the vendor maintenance procedure for the device. What the procedure does internally is not published.",
+      "estimated_minutes": 45,
+      "destructive_level": "unknown",
+      "reversible": "unknown",
+      "applies_to": [
+        "network_appliance"
+      ],
+      "effects": [
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "conntrack_table"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "The session table does not survive a reload on any vendor platform. This one part of the procedure can be asserted."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "appliance_syslog"
+          },
+          "impact": "unknown",
+          "confidence": "unknown",
+          "rationale": "Vendor maintenance procedures frequently clear on-device buffers, and frequently do not. Nothing in this library establishes which applies here."
+        },
+        {
+          "target": {
+            "kind": "tag",
+            "tag": "offhost"
+          },
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Records already forwarded off the device cannot be reached by anything the device does to itself."
+        }
+      ],
+      "default_effect": {
+        "impact": "unknown",
+        "confidence": "unknown",
+        "rationale": "The vendor procedure is not characterised in this library. No claim is made about what it does to anything not named above — and an uncharacterised procedure is not a harmless one."
+      },
+      "captures": [],
+      "prerequisites": [],
+      "confidence": "unknown",
+      "reference": "No published relationship between this procedure and on-device evidence. Treat every unlisted artifact as an open question for the vendor or for DFIR review.",
+      "unknown_impact": true,
+      "notes": "The honest answer for most appliance maintenance. The tool will not convert this into \"safe\" and will not convert it into \"destroyed\"; it will keep saying \"nobody here knows\" until somebody finds out."
+    },
+    {
+      "action_id": "verify_remediation",
+      "name": "Verify remediation",
+      "category": "verify",
+      "description": "Confirm the fix is in place and the service is healthy.",
+      "estimated_minutes": 10,
+      "destructive_level": "none",
+      "reversible": true,
+      "applies_to": "all",
+      "effects": [],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "Verification reads the system. It changes nothing in the evidence catalogue."
+      },
+      "captures": [],
+      "prerequisites": [],
+      "confidence": "high",
+      "reference": null,
+      "unknown_impact": false,
+      "notes": null
+    }
+  ],
+  "impacts": [
+    {
+      "action_id": "capture_appliance_state",
+      "artifact_id": "running_processes",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_appliance_state",
+      "artifact_id": "service_runtime_state",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_appliance_state",
+      "artifact_id": "active_connections",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_appliance_state",
+      "artifact_id": "listening_sockets",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_appliance_state",
+      "artifact_id": "conntrack_table",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_appliance_state",
+      "artifact_id": "interactive_sessions",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_appliance_state",
+      "artifact_id": "installed_package_state",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_appliance_state",
+      "artifact_id": "service_configuration",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_appliance_state",
+      "artifact_id": "centralised_logs",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_appliance_state",
+      "artifact_id": "appliance_syslog",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "firmware_update",
+      "artifact_id": "conntrack_table",
+      "impact": "destroys",
+      "confidence": "high",
+      "rationale": "The session table does not survive a reload on any vendor platform. This one part of the procedure can be asserted.",
+      "matched_by": "artifact",
+      "matched_on": null
+    },
+    {
+      "action_id": "firmware_update",
+      "artifact_id": "running_processes",
+      "impact": "unknown",
+      "confidence": "unknown",
+      "rationale": "The vendor procedure is not characterised in this library. No claim is made about what it does to anything not named above — and an uncharacterised procedure is not a harmless one.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "firmware_update",
+      "artifact_id": "service_runtime_state",
+      "impact": "unknown",
+      "confidence": "unknown",
+      "rationale": "The vendor procedure is not characterised in this library. No claim is made about what it does to anything not named above — and an uncharacterised procedure is not a harmless one.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "firmware_update",
+      "artifact_id": "active_connections",
+      "impact": "unknown",
+      "confidence": "unknown",
+      "rationale": "The vendor procedure is not characterised in this library. No claim is made about what it does to anything not named above — and an uncharacterised procedure is not a harmless one.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "firmware_update",
+      "artifact_id": "listening_sockets",
+      "impact": "unknown",
+      "confidence": "unknown",
+      "rationale": "The vendor procedure is not characterised in this library. No claim is made about what it does to anything not named above — and an uncharacterised procedure is not a harmless one.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "firmware_update",
+      "artifact_id": "interactive_sessions",
+      "impact": "unknown",
+      "confidence": "unknown",
+      "rationale": "The vendor procedure is not characterised in this library. No claim is made about what it does to anything not named above — and an uncharacterised procedure is not a harmless one.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "firmware_update",
+      "artifact_id": "installed_package_state",
+      "impact": "unknown",
+      "confidence": "unknown",
+      "rationale": "The vendor procedure is not characterised in this library. No claim is made about what it does to anything not named above — and an uncharacterised procedure is not a harmless one.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "firmware_update",
+      "artifact_id": "service_configuration",
+      "impact": "unknown",
+      "confidence": "unknown",
+      "rationale": "The vendor procedure is not characterised in this library. No claim is made about what it does to anything not named above — and an uncharacterised procedure is not a harmless one.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "firmware_update",
+      "artifact_id": "appliance_syslog",
+      "impact": "unknown",
+      "confidence": "unknown",
+      "rationale": "Vendor maintenance procedures frequently clear on-device buffers, and frequently do not. Nothing in this library establishes which applies here.",
+      "matched_by": "artifact",
+      "matched_on": null
+    },
+    {
+      "action_id": "firmware_update",
+      "artifact_id": "centralised_logs",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Records already forwarded off the device cannot be reached by anything the device does to itself.",
+      "matched_by": "tag",
+      "matched_on": "offhost"
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "running_processes",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "service_runtime_state",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "active_connections",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "listening_sockets",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "conntrack_table",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "interactive_sessions",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "installed_package_state",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "service_configuration",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "centralised_logs",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "appliance_syslog",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    }
+  ],
+  "footprints": [
+    {
+      "step_id": "s019",
+      "action_id": "capture_appliance_state",
+      "index": 0,
+      "name": "Export appliance state",
+      "category": "capture",
+      "destroys": [],
+      "modifies": [],
+      "may_invalidate": [],
+      "preserves": [
+        {
+          "action_id": "capture_appliance_state",
+          "artifact_id": "running_processes",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_appliance_state",
+          "artifact_id": "service_runtime_state",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_appliance_state",
+          "artifact_id": "active_connections",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_appliance_state",
+          "artifact_id": "listening_sockets",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_appliance_state",
+          "artifact_id": "conntrack_table",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_appliance_state",
+          "artifact_id": "interactive_sessions",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_appliance_state",
+          "artifact_id": "installed_package_state",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_appliance_state",
+          "artifact_id": "service_configuration",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_appliance_state",
+          "artifact_id": "centralised_logs",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_appliance_state",
+          "artifact_id": "appliance_syslog",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        }
+      ],
+      "unknown": [],
+      "harmful": false,
+      "destructive_level": "none",
+      "estimated_minutes": 12,
+      "reversible": true,
+      "confidence": "high"
+    },
+    {
+      "step_id": "s020",
+      "action_id": "firmware_update",
+      "index": 1,
+      "name": "Apply vendor firmware update",
+      "category": "firmware",
+      "destroys": [
+        {
+          "action_id": "firmware_update",
+          "artifact_id": "conntrack_table",
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "The session table does not survive a reload on any vendor platform. This one part of the procedure can be asserted.",
+          "matched_by": "artifact",
+          "matched_on": null
+        }
+      ],
+      "modifies": [],
+      "may_invalidate": [],
+      "preserves": [
+        {
+          "action_id": "firmware_update",
+          "artifact_id": "centralised_logs",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Records already forwarded off the device cannot be reached by anything the device does to itself.",
+          "matched_by": "tag",
+          "matched_on": "offhost"
+        }
+      ],
+      "unknown": [
+        {
+          "action_id": "firmware_update",
+          "artifact_id": "running_processes",
+          "impact": "unknown",
+          "confidence": "unknown",
+          "rationale": "The vendor procedure is not characterised in this library. No claim is made about what it does to anything not named above — and an uncharacterised procedure is not a harmless one.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "firmware_update",
+          "artifact_id": "service_runtime_state",
+          "impact": "unknown",
+          "confidence": "unknown",
+          "rationale": "The vendor procedure is not characterised in this library. No claim is made about what it does to anything not named above — and an uncharacterised procedure is not a harmless one.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "firmware_update",
+          "artifact_id": "active_connections",
+          "impact": "unknown",
+          "confidence": "unknown",
+          "rationale": "The vendor procedure is not characterised in this library. No claim is made about what it does to anything not named above — and an uncharacterised procedure is not a harmless one.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "firmware_update",
+          "artifact_id": "listening_sockets",
+          "impact": "unknown",
+          "confidence": "unknown",
+          "rationale": "The vendor procedure is not characterised in this library. No claim is made about what it does to anything not named above — and an uncharacterised procedure is not a harmless one.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "firmware_update",
+          "artifact_id": "interactive_sessions",
+          "impact": "unknown",
+          "confidence": "unknown",
+          "rationale": "The vendor procedure is not characterised in this library. No claim is made about what it does to anything not named above — and an uncharacterised procedure is not a harmless one.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "firmware_update",
+          "artifact_id": "installed_package_state",
+          "impact": "unknown",
+          "confidence": "unknown",
+          "rationale": "The vendor procedure is not characterised in this library. No claim is made about what it does to anything not named above — and an uncharacterised procedure is not a harmless one.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "firmware_update",
+          "artifact_id": "service_configuration",
+          "impact": "unknown",
+          "confidence": "unknown",
+          "rationale": "The vendor procedure is not characterised in this library. No claim is made about what it does to anything not named above — and an uncharacterised procedure is not a harmless one.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "firmware_update",
+          "artifact_id": "appliance_syslog",
+          "impact": "unknown",
+          "confidence": "unknown",
+          "rationale": "Vendor maintenance procedures frequently clear on-device buffers, and frequently do not. Nothing in this library establishes which applies here.",
+          "matched_by": "artifact",
+          "matched_on": null
+        }
+      ],
+      "harmful": true,
+      "destructive_level": "unknown",
+      "estimated_minutes": 45,
+      "reversible": "unknown",
+      "confidence": "unknown"
+    },
+    {
+      "step_id": "s021",
+      "action_id": "verify_remediation",
+      "index": 2,
+      "name": "Verify remediation",
+      "category": "verify",
+      "destroys": [],
+      "modifies": [],
+      "may_invalidate": [],
+      "preserves": [
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "running_processes",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "service_runtime_state",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "active_connections",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "listening_sockets",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "conntrack_table",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "interactive_sessions",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "installed_package_state",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "service_configuration",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "centralised_logs",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "appliance_syslog",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        }
+      ],
+      "unknown": [],
+      "harmful": false,
+      "destructive_level": "none",
+      "estimated_minutes": 10,
+      "reversible": true,
+      "confidence": "high"
+    }
+  ],
+  "outcomes": [
+    {
+      "artifact_id": "running_processes",
+      "name": "Running process list",
+      "tier": "process_state",
+      "priority": "recommended",
+      "outcome": "indeterminate",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s020",
+        "action_id": "firmware_update",
+        "action_name": "Apply vendor firmware update",
+        "index": 1,
+        "impact": "unknown",
+        "confidence": "unknown",
+        "rationale": "The vendor procedure is not characterised in this library. No claim is made about what it does to anything not named above — and an uncharacterised procedure is not a harmless one."
+      },
+      "explanation": "step 2, \"Apply vendor firmware update\", reaches it with uncharacterised impact and nothing captures it first. Whether it survives cannot be stated from this plan. The vendor procedure is not characterised in this library. No claim is made about what it does to anything not named above — and an uncharacterised procedure is not a harmless one.",
+      "confidence": "unknown",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "service_runtime_state",
+      "name": "Service runtime state",
+      "tier": "process_state",
+      "priority": "recommended",
+      "outcome": "indeterminate",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s020",
+        "action_id": "firmware_update",
+        "action_name": "Apply vendor firmware update",
+        "index": 1,
+        "impact": "unknown",
+        "confidence": "unknown",
+        "rationale": "The vendor procedure is not characterised in this library. No claim is made about what it does to anything not named above — and an uncharacterised procedure is not a harmless one."
+      },
+      "explanation": "step 2, \"Apply vendor firmware update\", reaches it with uncharacterised impact and nothing captures it first. Whether it survives cannot be stated from this plan. The vendor procedure is not characterised in this library. No claim is made about what it does to anything not named above — and an uncharacterised procedure is not a harmless one.",
+      "confidence": "unknown",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "active_connections",
+      "name": "Established network connections",
+      "tier": "network_state",
+      "priority": "recommended",
+      "outcome": "indeterminate",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s020",
+        "action_id": "firmware_update",
+        "action_name": "Apply vendor firmware update",
+        "index": 1,
+        "impact": "unknown",
+        "confidence": "unknown",
+        "rationale": "The vendor procedure is not characterised in this library. No claim is made about what it does to anything not named above — and an uncharacterised procedure is not a harmless one."
+      },
+      "explanation": "step 2, \"Apply vendor firmware update\", reaches it with uncharacterised impact and nothing captures it first. Whether it survives cannot be stated from this plan. The vendor procedure is not characterised in this library. No claim is made about what it does to anything not named above — and an uncharacterised procedure is not a harmless one.",
+      "confidence": "unknown",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "listening_sockets",
+      "name": "Listening sockets",
+      "tier": "network_state",
+      "priority": "optional",
+      "outcome": "indeterminate",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s020",
+        "action_id": "firmware_update",
+        "action_name": "Apply vendor firmware update",
+        "index": 1,
+        "impact": "unknown",
+        "confidence": "unknown",
+        "rationale": "The vendor procedure is not characterised in this library. No claim is made about what it does to anything not named above — and an uncharacterised procedure is not a harmless one."
+      },
+      "explanation": "step 2, \"Apply vendor firmware update\", reaches it with uncharacterised impact and nothing captures it first. Whether it survives cannot be stated from this plan. The vendor procedure is not characterised in this library. No claim is made about what it does to anything not named above — and an uncharacterised procedure is not a harmless one.",
+      "confidence": "unknown",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "conntrack_table",
+      "name": "Connection-tracking table",
+      "tier": "network_state",
+      "priority": "required",
+      "outcome": "preserved",
+      "captured_at_index": 0,
+      "first_harm": {
+        "step_id": "s020",
+        "action_id": "firmware_update",
+        "action_name": "Apply vendor firmware update",
+        "index": 1,
+        "impact": "destroys",
+        "confidence": "high",
+        "rationale": "The session table does not survive a reload on any vendor platform. This one part of the procedure can be asserted."
+      },
+      "explanation": "Captured at step 1 by \"Export appliance state\", before anything in this plan touches it.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "interactive_sessions",
+      "name": "Logged-on sessions",
+      "tier": "session_state",
+      "priority": "recommended",
+      "outcome": "indeterminate",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s020",
+        "action_id": "firmware_update",
+        "action_name": "Apply vendor firmware update",
+        "index": 1,
+        "impact": "unknown",
+        "confidence": "unknown",
+        "rationale": "The vendor procedure is not characterised in this library. No claim is made about what it does to anything not named above — and an uncharacterised procedure is not a harmless one."
+      },
+      "explanation": "step 2, \"Apply vendor firmware update\", reaches it with uncharacterised impact and nothing captures it first. Whether it survives cannot be stated from this plan. The vendor procedure is not characterised in this library. No claim is made about what it does to anything not named above — and an uncharacterised procedure is not a harmless one.",
+      "confidence": "unknown",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "installed_package_state",
+      "name": "Installed package and version state",
+      "tier": "disk_artifact",
+      "priority": "required",
+      "outcome": "preserved",
+      "captured_at_index": 0,
+      "first_harm": {
+        "step_id": "s020",
+        "action_id": "firmware_update",
+        "action_name": "Apply vendor firmware update",
+        "index": 1,
+        "impact": "unknown",
+        "confidence": "unknown",
+        "rationale": "The vendor procedure is not characterised in this library. No claim is made about what it does to anything not named above — and an uncharacterised procedure is not a harmless one."
+      },
+      "explanation": "Captured at step 1 by \"Export appliance state\", before anything in this plan touches it.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "service_configuration",
+      "name": "Service configuration on disk",
+      "tier": "disk_artifact",
+      "priority": "required",
+      "outcome": "preserved",
+      "captured_at_index": 0,
+      "first_harm": {
+        "step_id": "s020",
+        "action_id": "firmware_update",
+        "action_name": "Apply vendor firmware update",
+        "index": 1,
+        "impact": "unknown",
+        "confidence": "unknown",
+        "rationale": "The vendor procedure is not characterised in this library. No claim is made about what it does to anything not named above — and an uncharacterised procedure is not a harmless one."
+      },
+      "explanation": "Captured at step 1 by \"Export appliance state\", before anything in this plan touches it.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "centralised_logs",
+      "name": "Centralised log copies",
+      "tier": "long_term_record",
+      "priority": "recommended",
+      "outcome": "retained",
+      "captured_at_index": null,
+      "first_harm": null,
+      "explanation": "No step in this plan captures it, and no step touches it. It stays on the system and can be collected after remediation.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "appliance_syslog",
+      "name": "Appliance log export",
+      "tier": "long_term_record",
+      "priority": "required",
+      "outcome": "preserved",
+      "captured_at_index": 0,
+      "first_harm": {
+        "step_id": "s020",
+        "action_id": "firmware_update",
+        "action_name": "Apply vendor firmware update",
+        "index": 1,
+        "impact": "unknown",
+        "confidence": "unknown",
+        "rationale": "Vendor maintenance procedures frequently clear on-device buffers, and frequently do not. Nothing in this library establishes which applies here."
+      },
+      "explanation": "Captured at step 1 by \"Export appliance state\", before anything in this plan touches it.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    }
+  ],
+  "recommended_outcomes": [
+    {
+      "artifact_id": "running_processes",
+      "name": "Running process list",
+      "tier": "process_state",
+      "priority": "recommended",
+      "outcome": "indeterminate",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s020",
+        "action_id": "firmware_update",
+        "action_name": "Apply vendor firmware update",
+        "index": 1,
+        "impact": "unknown",
+        "confidence": "unknown",
+        "rationale": "The vendor procedure is not characterised in this library. No claim is made about what it does to anything not named above — and an uncharacterised procedure is not a harmless one."
+      },
+      "explanation": "step 2, \"Apply vendor firmware update\", reaches it with uncharacterised impact and nothing captures it first. Whether it survives cannot be stated from this plan. The vendor procedure is not characterised in this library. No claim is made about what it does to anything not named above — and an uncharacterised procedure is not a harmless one.",
+      "confidence": "unknown",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "service_runtime_state",
+      "name": "Service runtime state",
+      "tier": "process_state",
+      "priority": "recommended",
+      "outcome": "indeterminate",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s020",
+        "action_id": "firmware_update",
+        "action_name": "Apply vendor firmware update",
+        "index": 1,
+        "impact": "unknown",
+        "confidence": "unknown",
+        "rationale": "The vendor procedure is not characterised in this library. No claim is made about what it does to anything not named above — and an uncharacterised procedure is not a harmless one."
+      },
+      "explanation": "step 2, \"Apply vendor firmware update\", reaches it with uncharacterised impact and nothing captures it first. Whether it survives cannot be stated from this plan. The vendor procedure is not characterised in this library. No claim is made about what it does to anything not named above — and an uncharacterised procedure is not a harmless one.",
+      "confidence": "unknown",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "active_connections",
+      "name": "Established network connections",
+      "tier": "network_state",
+      "priority": "recommended",
+      "outcome": "indeterminate",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s020",
+        "action_id": "firmware_update",
+        "action_name": "Apply vendor firmware update",
+        "index": 1,
+        "impact": "unknown",
+        "confidence": "unknown",
+        "rationale": "The vendor procedure is not characterised in this library. No claim is made about what it does to anything not named above — and an uncharacterised procedure is not a harmless one."
+      },
+      "explanation": "step 2, \"Apply vendor firmware update\", reaches it with uncharacterised impact and nothing captures it first. Whether it survives cannot be stated from this plan. The vendor procedure is not characterised in this library. No claim is made about what it does to anything not named above — and an uncharacterised procedure is not a harmless one.",
+      "confidence": "unknown",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "listening_sockets",
+      "name": "Listening sockets",
+      "tier": "network_state",
+      "priority": "optional",
+      "outcome": "indeterminate",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s020",
+        "action_id": "firmware_update",
+        "action_name": "Apply vendor firmware update",
+        "index": 1,
+        "impact": "unknown",
+        "confidence": "unknown",
+        "rationale": "The vendor procedure is not characterised in this library. No claim is made about what it does to anything not named above — and an uncharacterised procedure is not a harmless one."
+      },
+      "explanation": "step 2, \"Apply vendor firmware update\", reaches it with uncharacterised impact and nothing captures it first. Whether it survives cannot be stated from this plan. The vendor procedure is not characterised in this library. No claim is made about what it does to anything not named above — and an uncharacterised procedure is not a harmless one.",
+      "confidence": "unknown",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "conntrack_table",
+      "name": "Connection-tracking table",
+      "tier": "network_state",
+      "priority": "required",
+      "outcome": "preserved",
+      "captured_at_index": 0,
+      "first_harm": {
+        "step_id": "s020",
+        "action_id": "firmware_update",
+        "action_name": "Apply vendor firmware update",
+        "index": 1,
+        "impact": "destroys",
+        "confidence": "high",
+        "rationale": "The session table does not survive a reload on any vendor platform. This one part of the procedure can be asserted."
+      },
+      "explanation": "Captured at step 1 by \"Export appliance state\", before anything in this plan touches it.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "interactive_sessions",
+      "name": "Logged-on sessions",
+      "tier": "session_state",
+      "priority": "recommended",
+      "outcome": "indeterminate",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s020",
+        "action_id": "firmware_update",
+        "action_name": "Apply vendor firmware update",
+        "index": 1,
+        "impact": "unknown",
+        "confidence": "unknown",
+        "rationale": "The vendor procedure is not characterised in this library. No claim is made about what it does to anything not named above — and an uncharacterised procedure is not a harmless one."
+      },
+      "explanation": "step 2, \"Apply vendor firmware update\", reaches it with uncharacterised impact and nothing captures it first. Whether it survives cannot be stated from this plan. The vendor procedure is not characterised in this library. No claim is made about what it does to anything not named above — and an uncharacterised procedure is not a harmless one.",
+      "confidence": "unknown",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "installed_package_state",
+      "name": "Installed package and version state",
+      "tier": "disk_artifact",
+      "priority": "required",
+      "outcome": "preserved",
+      "captured_at_index": 0,
+      "first_harm": {
+        "step_id": "s020",
+        "action_id": "firmware_update",
+        "action_name": "Apply vendor firmware update",
+        "index": 1,
+        "impact": "unknown",
+        "confidence": "unknown",
+        "rationale": "The vendor procedure is not characterised in this library. No claim is made about what it does to anything not named above — and an uncharacterised procedure is not a harmless one."
+      },
+      "explanation": "Captured at step 1 by \"Export appliance state\", before anything in this plan touches it.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "service_configuration",
+      "name": "Service configuration on disk",
+      "tier": "disk_artifact",
+      "priority": "required",
+      "outcome": "preserved",
+      "captured_at_index": 0,
+      "first_harm": {
+        "step_id": "s020",
+        "action_id": "firmware_update",
+        "action_name": "Apply vendor firmware update",
+        "index": 1,
+        "impact": "unknown",
+        "confidence": "unknown",
+        "rationale": "The vendor procedure is not characterised in this library. No claim is made about what it does to anything not named above — and an uncharacterised procedure is not a harmless one."
+      },
+      "explanation": "Captured at step 1 by \"Export appliance state\", before anything in this plan touches it.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "centralised_logs",
+      "name": "Centralised log copies",
+      "tier": "long_term_record",
+      "priority": "recommended",
+      "outcome": "retained",
+      "captured_at_index": null,
+      "first_harm": null,
+      "explanation": "No step in this plan captures it, and no step touches it. It stays on the system and can be collected after remediation.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "appliance_syslog",
+      "name": "Appliance log export",
+      "tier": "long_term_record",
+      "priority": "required",
+      "outcome": "preserved",
+      "captured_at_index": 0,
+      "first_harm": {
+        "step_id": "s020",
+        "action_id": "firmware_update",
+        "action_name": "Apply vendor firmware update",
+        "index": 1,
+        "impact": "unknown",
+        "confidence": "unknown",
+        "rationale": "Vendor maintenance procedures frequently clear on-device buffers, and frequently do not. Nothing in this library establishes which applies here."
+      },
+      "explanation": "Captured at step 1 by \"Export appliance state\", before anything in this plan touches it.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    }
+  ],
+  "sequence": {
+    "steps": [
+      {
+        "order": 1,
+        "kind": "capture",
+        "step_id": "s019",
+        "action_id": "capture_appliance_state",
+        "name": "Export appliance state",
+        "artifact_ids": [
+          "conntrack_table",
+          "appliance_syslog",
+          "service_configuration",
+          "installed_package_state"
+        ],
+        "estimated_minutes": 12,
+        "offset_minutes": 0,
+        "why_now": "Connection-tracking table, Appliance log export, Service configuration on disk and 1 other decay on their own — connections close, processes exit, caches expire — so this runs first regardless of what the plan does. \"Apply vendor firmware update\" is the first step in this plan that reaches them; after it, this capture would collect nothing.",
+        "at_risk": [
+          "Connection-tracking table",
+          "Appliance log export",
+          "Service configuration on disk",
+          "Installed package and version state"
+        ],
+        "enables": "Apply vendor firmware update",
+        "lost_after": [],
+        "confidence": "medium",
+        "gate": 0
+      },
+      {
+        "order": 2,
+        "kind": "remediation",
+        "step_id": "s020",
+        "action_id": "firmware_update",
+        "name": "Apply vendor firmware update",
+        "artifact_ids": [],
+        "estimated_minutes": 45,
+        "offset_minutes": 12,
+        "why_now": "A remediation step. Nothing in the evidence catalogue is lost at this point.",
+        "at_risk": [],
+        "enables": null,
+        "lost_after": [],
+        "confidence": "unknown",
+        "gate": null
+      },
+      {
+        "order": 3,
+        "kind": "remediation",
+        "step_id": "s021",
+        "action_id": "verify_remediation",
+        "name": "Verify remediation",
+        "artifact_ids": [],
+        "estimated_minutes": 10,
+        "offset_minutes": 57,
+        "why_now": "A remediation step. Nothing in the evidence catalogue is lost at this point.",
+        "at_risk": [],
+        "enables": null,
+        "lost_after": [],
+        "confidence": "high",
+        "gate": null
+      }
+    ],
+    "gates": [
+      {
+        "gate": 0,
+        "before_step_id": "s020",
+        "before_action_id": "firmware_update",
+        "before_action_name": "Apply vendor firmware update",
+        "artifact_ids": [
+          "conntrack_table",
+          "appliance_syslog",
+          "service_configuration",
+          "installed_package_state"
+        ],
+        "reason": "\"Apply vendor firmware update\" is the first step in this plan that reaches Connection-tracking table, Appliance log export, Service configuration on disk and Installed package and version state. Everything in this gate has to be collected before the step below it runs."
+      }
+    ],
+    "order": [
+      "s019",
+      "s020",
+      "s021"
+    ],
+    "matches_plan_order": true
+  },
+  "feasibility": {
+    "status": "feasible",
+    "preservation_minutes": 12,
+    "remediation_minutes": 55,
+    "verification_minutes": 30,
+    "buffer_minutes": 60,
+    "total_minutes": 157,
+    "available_minutes": 4980,
+    "slack_minutes": 4823,
+    "utilisation": 0.03152610441767068,
+    "unknown_duration_count": 0,
+    "explanation": "2h 37m of work against a 3d 11h window, using 3% of it, leaving 3d 8h. Preservation and remediation both fit with room."
+  },
+  "conflicts": [
+    {
+      "conflict_id": "unknown_s020",
+      "kind": "unknown_impact",
+      "severity": "high",
+      "title": "\"Apply vendor firmware update\" has an uncharacterised effect on 8 artifacts",
+      "detail": "The vendor procedure is not characterised in this library. No claim is made about what it does to anything not named above — and an uncharacterised procedure is not a harmless one. That leaves Running process list, Service runtime state, Established network connections, Listening sockets and 4 others with no stated relationship to this step. Unknown is not safe and it is not destroyed. Nothing downstream will report these artifacts as preserved or as lost, and the decision about how to treat them belongs to a human who can find out.",
+      "options": [
+        "Ask the vendor or platform owner what the procedure touches, and record the answer in the action library.",
+        "Treat the affected artifacts as at risk and capture them beforehand — the conservative reading, at the cost of the capture time.",
+        "Accept the uncertainty explicitly, so that \"we did not know\" is on the record rather than implied."
+      ],
+      "subject_ids": [
+        "running_processes",
+        "service_runtime_state",
+        "active_connections",
+        "listening_sockets",
+        "interactive_sessions",
+        "installed_package_state",
+        "service_configuration",
+        "appliance_syslog"
+      ],
+      "resolved_by": null
+    },
+    {
+      "conflict_id": "loss_undocumented",
+      "kind": "undocumented_loss",
+      "severity": "medium",
+      "title": "5 artifacts have an undetermined outcome, and nobody has signed for them",
+      "detail": "Running process list, Service runtime state, Established network connections, Listening sockets and 1 other. Proceeding into uncertainty is frequently the right call. Doing it without a record of who accepted the uncertainty is the part that becomes a problem six months later, when somebody asks what was known at the time.",
+      "options": [
+        "Record an accepted loss for each artifact, naming the decision owner and the residual risk.",
+        "Reorder so the captures precede the destructive steps.",
+        "Reduce the remediation to steps that do not destroy this evidence, if an equivalent mitigation exists."
+      ],
+      "subject_ids": [
+        "running_processes",
+        "service_runtime_state",
+        "active_connections",
+        "listening_sockets",
+        "interactive_sessions"
+      ],
+      "resolved_by": null
+    }
+  ],
+  "unknowns": [
+    {
+      "action_id": "firmware_update",
+      "action_name": "Apply vendor firmware update",
+      "step_id": "s020",
+      "artifact_ids": [
+        "running_processes",
+        "service_runtime_state",
+        "active_connections",
+        "listening_sockets",
+        "interactive_sessions",
+        "installed_package_state",
+        "service_configuration",
+        "appliance_syslog"
+      ],
+      "reason": "The vendor procedure is not characterised in this library. No claim is made about what it does to anything not named above — and an uncharacterised procedure is not a harmless one. That leaves Running process list, Service runtime state, Established network connections, Listening sockets and 4 others with no stated relationship to this step.",
+      "recommendation": "Unknown is not safe and it is not destroyed. Nothing downstream will report these artifacts as preserved or as lost, and the decision about how to treat them belongs to a human who can find out."
+    }
+  ],
+  "summary": {
+    "asset_name": "edge-fw-02.dc1",
+    "asset_type": "network_appliance",
+    "tier_label": "High — 14 day",
+    "deadline_label": "14-day vendor advisory window",
+    "step_count": 3,
+    "capture_step_count": 1,
+    "harmful_step_count": 1,
+    "artifact_count": 10,
+    "outcomes": {
+      "preserved": 4,
+      "degraded": 0,
+      "lost": 0,
+      "retained": 1,
+      "indeterminate": 5,
+      "accepted_loss": 0
+    },
+    "conflict_count": 2,
+    "unknown_impact_count": 1,
+    "accepted_loss_count": 0,
+    "override_count": 0,
+    "feasibility": "feasible"
+  },
+  "assumptions": [
+    "Steps run one after another on a single worker. Two captures that could genuinely run in parallel are counted twice against the clock, so the total is conservative.",
+    "The evidence catalogue is scoped to network appliance. Artifacts that do not apply to this asset type are not offered and are not counted as lost.",
+    "Durations are order-of-magnitude figures from the catalogue, adjusted by any per-step override in this plan. They are not measurements of your environment.",
+    "Verification (30 min) and contingency buffer (60 min) are counted against the window as stated in the plan.",
+    "The remediation tier and the deadline are inputs. TOURNIQUET does not assess how urgent this vulnerability is and cannot tell you whether the tier is right."
+  ],
+  "limitations": [
+    "TOURNIQUET plans an order. It does not acquire evidence, does not execute remediation, and has no connection to any system.",
+    "The action-to-evidence mappings are a synthetic library written for this tool. They describe how these platforms generally behave; they are not vendor statements and they are not tested against your build.",
+    "Confidence is declared per mapping and propagated. It is not derived from any corpus, and \"high\" means \"follows from how the platform works\", not \"measured\".",
+    "An artifact reported as retained is retained under the plan as analysed. Anything not in the plan — a colleague restarting the service, an autoscaler replacing the node — is outside what this can see.",
+    "Timestamps, package state and local logs are attacker-modifiable. Preserving them preserves what is there, which is not the same as preserving the truth.",
+    "The tool cannot tell you whether an investigation is warranted. It tells you what a given remediation would cost you if one turned out to be."
+  ]
+}

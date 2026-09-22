@@ -1,0 +1,5281 @@
+{
+  "headline": "The plan fits the 8h window with 6h 40m to spare. 23 artifacts will not survive it. The order the plan is written in preserves as much as the recommended order does.",
+  "analysis_version": "tourniquet/1",
+  "analysed_at": "2026-09-22T12:00:00Z",
+  "plan": {
+    "plan_id": "PLN-2308",
+    "name": "PAY-K8S-07 — checkout workload, unexpected egress after dependency RCE",
+    "asset": {
+      "asset_id": "PAY-K8S-07",
+      "name": "checkout-api-7d9f4b8c6-x2kqp",
+      "type": "kubernetes_workload",
+      "environment": "Production",
+      "owner": "Checkout Engineering",
+      "description": "Checkout API pod, one of twelve replicas. Built from an internal base image; the vulnerable dependency is in the application layer.",
+      "notes": "Egress to an unrecognised address was observed ninety minutes before this plan was written."
+    },
+    "vulnerability": {
+      "reference": "VULN-2026-0455 (synthetic)",
+      "title": "Remote code execution in a bundled dependency",
+      "summary": "A serialisation library bundled into the application image permits code execution on crafted input. A patched image is already built and waiting.",
+      "suspected_compromise": true,
+      "notes": "Egress to an address with no business relationship, from a pod that only talks to two internal services. Treated as a suspected compromise."
+    },
+    "tier": {
+      "label": "Incident-driven — same shift",
+      "source": "Incident commander, declared incident INC-4471",
+      "window_hours": 8,
+      "external": true,
+      "notes": "Set by the incident commander rather than by the vulnerability tier."
+    },
+    "deadline": {
+      "issued_at": "2026-09-22T05:30:00Z",
+      "due_at": "2026-09-22T14:00:00Z",
+      "plan_start": "2026-09-22T06:00:00Z",
+      "label": "Same-shift containment"
+    },
+    "steps": [
+      {
+        "step_id": "s009",
+        "action_id": "capture_offhost_logs",
+        "override_minutes": null,
+        "note": null
+      },
+      {
+        "step_id": "s010",
+        "action_id": "capture_cloud_logs",
+        "override_minutes": null,
+        "note": null
+      },
+      {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "override_minutes": null,
+        "note": null
+      },
+      {
+        "step_id": "s012",
+        "action_id": "verify_remediation",
+        "override_minutes": null,
+        "note": null
+      }
+    ],
+    "evidence": [
+      {
+        "artifact_id": "container_writable_layer",
+        "priority": "required",
+        "included": true,
+        "override_minutes": null
+      },
+      {
+        "artifact_id": "process_memory_target",
+        "priority": "required",
+        "included": true,
+        "override_minutes": null
+      },
+      {
+        "artifact_id": "running_processes",
+        "priority": "required",
+        "included": true,
+        "override_minutes": null
+      },
+      {
+        "artifact_id": "active_connections",
+        "priority": "required",
+        "included": true,
+        "override_minutes": null
+      },
+      {
+        "artifact_id": "ephemeral_volume_contents",
+        "priority": "recommended",
+        "included": true,
+        "override_minutes": null
+      },
+      {
+        "artifact_id": "local_event_logs",
+        "priority": "required",
+        "included": true,
+        "override_minutes": null
+      },
+      {
+        "artifact_id": "cloud_control_plane_logs",
+        "priority": "required",
+        "included": true,
+        "override_minutes": null
+      },
+      {
+        "artifact_id": "centralised_logs",
+        "priority": "required",
+        "included": true,
+        "override_minutes": null
+      },
+      {
+        "artifact_id": "staged_tooling",
+        "priority": "required",
+        "included": true,
+        "override_minutes": null
+      }
+    ],
+    "accepted_losses": [],
+    "overrides": [],
+    "contingency_buffer_minutes": 20,
+    "verification_minutes": 15,
+    "notes": "The patched image is clean by construction. Everything the attacker did is in the writable layer of the pod about to be deleted."
+  },
+  "artifacts": [
+    {
+      "artifact_id": "process_memory_target",
+      "name": "Target process memory",
+      "tier": "volatile_memory",
+      "description": "The address space of one specific process — typically the vulnerable service — dumped without imaging the whole host.",
+      "applies_to": [
+        "windows_workstation",
+        "windows_server",
+        "linux_server",
+        "cloud_vm",
+        "database_server",
+        "application_server",
+        "container",
+        "kubernetes_workload"
+      ],
+      "collection": {
+        "label": "Per-process memory dump",
+        "estimated_minutes": 8,
+        "requires_live_host": true,
+        "observer_effect": "Dumping a running process may briefly suspend it, and the dump reflects the moment of collection rather than the moment of interest.",
+        "note": "The pragmatic substitute when a full memory image will not fit the window."
+      },
+      "default_priority": "required",
+      "answers": "What was inside the vulnerable service at the time — deserialised payloads, request buffers, loaded webshell code?",
+      "tags": [
+        "memory",
+        "process",
+        "host_state"
+      ],
+      "confidence": "high",
+      "notes": null
+    },
+    {
+      "artifact_id": "injected_code_regions",
+      "name": "Unbacked executable memory",
+      "tier": "volatile_memory",
+      "description": "Executable memory regions with no backing file on disk — the usual shape of process injection and reflectively loaded code.",
+      "applies_to": [
+        "windows_workstation",
+        "windows_server",
+        "linux_server",
+        "cloud_vm",
+        "database_server",
+        "application_server",
+        "container",
+        "kubernetes_workload"
+      ],
+      "collection": {
+        "label": "Region enumeration and targeted dump",
+        "estimated_minutes": 12,
+        "requires_live_host": true,
+        "observer_effect": null,
+        "note": "Depends on a live process list; loses meaning once processes have been restarted."
+      },
+      "default_priority": "required",
+      "answers": "Is code running on this host that was never written to disk, and therefore leaves no file for anyone to find afterwards?",
+      "tags": [
+        "memory",
+        "process",
+        "host_state"
+      ],
+      "confidence": "high",
+      "notes": null
+    },
+    {
+      "artifact_id": "decrypted_key_material",
+      "name": "Decrypted key material in memory",
+      "tier": "volatile_memory",
+      "description": "Private keys, session keys and secrets that exist in plaintext only while the process holding them is running.",
+      "applies_to": [
+        "windows_workstation",
+        "windows_server",
+        "linux_server",
+        "cloud_vm",
+        "database_server",
+        "application_server",
+        "container",
+        "kubernetes_workload"
+      ],
+      "collection": {
+        "label": "Extracted from a memory image",
+        "estimated_minutes": null,
+        "requires_live_host": true,
+        "observer_effect": null,
+        "note": "No independent estimate: in practice this is recovered from the memory image rather than collected separately, and the time is analysis time rather than acquisition time."
+      },
+      "default_priority": "recommended",
+      "answers": "Which secrets were actually resident and therefore reachable by anything running on this host?",
+      "tags": [
+        "memory",
+        "credential",
+        "host_state"
+      ],
+      "confidence": "medium",
+      "notes": "Recovery from an image is not guaranteed; some runtimes zero key buffers aggressively and some do not."
+    },
+    {
+      "artifact_id": "running_processes",
+      "name": "Running process list",
+      "tier": "process_state",
+      "description": "Processes with command lines, parents, owning users and start times, as a point-in-time list.",
+      "applies_to": "all",
+      "collection": {
+        "label": "Process enumeration to file",
+        "estimated_minutes": 3,
+        "requires_live_host": true,
+        "observer_effect": "The collection tool appears in its own output.",
+        "note": null
+      },
+      "default_priority": "required",
+      "answers": "What was actually running, under whose account, launched by what? The parent chain is usually the first thing an investigation asks for.",
+      "tags": [
+        "process",
+        "host_state"
+      ],
+      "confidence": "high",
+      "notes": null
+    },
+    {
+      "artifact_id": "loaded_modules",
+      "name": "Loaded modules",
+      "tier": "process_state",
+      "description": "Shared libraries, drivers and kernel modules loaded into running processes and into the kernel.",
+      "applies_to": [
+        "windows_workstation",
+        "windows_server",
+        "linux_server",
+        "cloud_vm",
+        "database_server",
+        "application_server",
+        "container",
+        "kubernetes_workload"
+      ],
+      "collection": {
+        "label": "Module enumeration to file",
+        "estimated_minutes": 3,
+        "requires_live_host": true,
+        "observer_effect": null,
+        "note": null
+      },
+      "default_priority": "recommended",
+      "answers": "Was anything loaded into a legitimate process that did not belong there — a sideloaded library, an unsigned driver?",
+      "tags": [
+        "process",
+        "host_state"
+      ],
+      "confidence": "high",
+      "notes": null
+    },
+    {
+      "artifact_id": "open_file_handles",
+      "name": "Open handles and deleted-but-open files",
+      "tier": "process_state",
+      "description": "Open file and socket handles, including files that have been unlinked from the filesystem but are still held open by a process.",
+      "applies_to": [
+        "windows_workstation",
+        "windows_server",
+        "linux_server",
+        "cloud_vm",
+        "database_server",
+        "application_server",
+        "container",
+        "kubernetes_workload"
+      ],
+      "collection": {
+        "label": "Handle enumeration, with recovery of unlinked files",
+        "estimated_minutes": 4,
+        "requires_live_host": true,
+        "observer_effect": null,
+        "note": "An unlinked-but-open file is recoverable only while the holding process lives."
+      },
+      "default_priority": "recommended",
+      "answers": "Is there a file the attacker deleted that is still recoverable because something still has it open? After the process ends, it is not.",
+      "tags": [
+        "process",
+        "filesystem",
+        "host_state"
+      ],
+      "confidence": "high",
+      "notes": null
+    },
+    {
+      "artifact_id": "service_runtime_state",
+      "name": "Service runtime state",
+      "tier": "process_state",
+      "description": "The running configuration, uptime, worker set and in-memory state of the affected service, as distinct from its configuration on disk.",
+      "applies_to": "all",
+      "collection": {
+        "label": "Service status and runtime configuration dump",
+        "estimated_minutes": 2,
+        "requires_live_host": true,
+        "observer_effect": null,
+        "note": null
+      },
+      "default_priority": "recommended",
+      "answers": "Was the service running the configuration that is on disk, or something that was changed at runtime and never written down?",
+      "tags": [
+        "process",
+        "service",
+        "host_state"
+      ],
+      "confidence": "high",
+      "notes": null
+    },
+    {
+      "artifact_id": "active_connections",
+      "name": "Established network connections",
+      "tier": "network_state",
+      "description": "The socket table: established connections with remote addresses, ports and owning processes.",
+      "applies_to": "all",
+      "collection": {
+        "label": "Socket table enumeration",
+        "estimated_minutes": 2,
+        "requires_live_host": true,
+        "observer_effect": null,
+        "note": null
+      },
+      "default_priority": "required",
+      "answers": "Where was this host talking to, right now, and which process owned the conversation? A closed connection leaves no local record of itself.",
+      "tags": [
+        "network",
+        "host_state"
+      ],
+      "confidence": "high",
+      "notes": null
+    },
+    {
+      "artifact_id": "listening_sockets",
+      "name": "Listening sockets",
+      "tier": "network_state",
+      "description": "Bound ports and the processes listening on them.",
+      "applies_to": "all",
+      "collection": {
+        "label": "Listener enumeration",
+        "estimated_minutes": 2,
+        "requires_live_host": true,
+        "observer_effect": null,
+        "note": null
+      },
+      "default_priority": "recommended",
+      "answers": "Was anything listening that should not have been — a backdoor port, an unexpected bind?",
+      "tags": [
+        "network",
+        "host_state"
+      ],
+      "confidence": "high",
+      "notes": null
+    },
+    {
+      "artifact_id": "interactive_sessions",
+      "name": "Logged-on sessions",
+      "tier": "session_state",
+      "description": "Interactive and remote sessions currently established, with their origin.",
+      "applies_to": "all",
+      "collection": {
+        "label": "Session enumeration",
+        "estimated_minutes": 2,
+        "requires_live_host": true,
+        "observer_effect": null,
+        "note": null
+      },
+      "default_priority": "required",
+      "answers": "Who is logged in right now, from where, and since when?",
+      "tags": [
+        "session",
+        "host_state"
+      ],
+      "confidence": "high",
+      "notes": null
+    },
+    {
+      "artifact_id": "active_access_tokens",
+      "name": "Live access and refresh tokens",
+      "tier": "session_state",
+      "description": "Tokens currently valid for the affected principal, with their scopes, audiences and issue times.",
+      "applies_to": [
+        "saas_identity",
+        "cloud_vm",
+        "application_server",
+        "kubernetes_workload"
+      ],
+      "collection": {
+        "label": "Token inventory from the issuer",
+        "estimated_minutes": 6,
+        "requires_live_host": false,
+        "observer_effect": null,
+        "note": "Read from the identity provider rather than from the host."
+      },
+      "default_priority": "required",
+      "answers": "What could the compromised principal still do, and for how long? Scope and expiry are the blast radius.",
+      "tags": [
+        "session",
+        "credential",
+        "identity"
+      ],
+      "confidence": "medium",
+      "notes": "What a provider exposes about live tokens varies; some list sessions rather than tokens, and refresh-token lineage is often not visible at all."
+    },
+    {
+      "artifact_id": "app_session_store",
+      "name": "Application session store",
+      "tier": "session_state",
+      "description": "Server-side sessions held by the application — in memory, in a cache, or in a session table.",
+      "applies_to": [
+        "application_server",
+        "container",
+        "kubernetes_workload",
+        "saas_identity"
+      ],
+      "collection": {
+        "label": "Session store export",
+        "estimated_minutes": 10,
+        "requires_live_host": true,
+        "observer_effect": null,
+        "note": null
+      },
+      "default_priority": "recommended",
+      "answers": "Which application sessions existed, and did any of them belong to an account that should not have had one?",
+      "tags": [
+        "session"
+      ],
+      "confidence": "medium",
+      "notes": "Where the store lives is application-specific; an in-process store does not survive a restart."
+    },
+    {
+      "artifact_id": "container_writable_layer",
+      "name": "Container writable layer",
+      "tier": "runtime_artifact",
+      "description": "Everything written inside the container since it started, held in the copy-on-write layer above the immutable image.",
+      "applies_to": [
+        "container",
+        "kubernetes_workload"
+      ],
+      "collection": {
+        "label": "Checkpoint or export of the writable layer",
+        "estimated_minutes": 15,
+        "requires_live_host": true,
+        "observer_effect": null,
+        "note": "The layer is discarded when the container is replaced, not when it is restarted."
+      },
+      "default_priority": "required",
+      "answers": "What did the attacker write inside the container? The image is unchanged by definition, so everything they left is in this layer and nowhere else.",
+      "tags": [
+        "container",
+        "runtime",
+        "filesystem"
+      ],
+      "confidence": "high",
+      "notes": null
+    },
+    {
+      "artifact_id": "ephemeral_volume_contents",
+      "name": "Ephemeral volume contents",
+      "tier": "runtime_artifact",
+      "description": "Contents of volumes whose lifetime is bound to the workload rather than the cluster.",
+      "applies_to": [
+        "container",
+        "kubernetes_workload"
+      ],
+      "collection": {
+        "label": "Volume copy before teardown",
+        "estimated_minutes": 12,
+        "requires_live_host": true,
+        "observer_effect": null,
+        "note": null
+      },
+      "default_priority": "recommended",
+      "answers": "What was staged on scratch storage that the next scheduling decision will erase?",
+      "tags": [
+        "container",
+        "runtime",
+        "filesystem"
+      ],
+      "confidence": "medium",
+      "notes": "Whether a given volume is ephemeral depends on the workload spec, not on the platform."
+    },
+    {
+      "artifact_id": "shared_memory_segments",
+      "name": "Shared memory and tmpfs",
+      "tier": "runtime_artifact",
+      "description": "Shared memory segments and memory-backed filesystems, which look like files but do not survive a reboot.",
+      "applies_to": [
+        "linux_server",
+        "cloud_vm",
+        "container",
+        "kubernetes_workload",
+        "database_server"
+      ],
+      "collection": {
+        "label": "Copy of memory-backed paths",
+        "estimated_minutes": 6,
+        "requires_live_host": true,
+        "observer_effect": null,
+        "note": null
+      },
+      "default_priority": "recommended",
+      "answers": "Was anything staged somewhere that looks like disk but is not? Content here is frequently mistaken for something a disk image will capture.",
+      "tags": [
+        "runtime",
+        "filesystem",
+        "memory"
+      ],
+      "confidence": "high",
+      "notes": null
+    },
+    {
+      "artifact_id": "temp_directory_contents",
+      "name": "Temporary directory contents",
+      "tier": "temporary_state",
+      "description": "World-writable and per-user temporary paths, the usual staging ground.",
+      "applies_to": [
+        "windows_workstation",
+        "windows_server",
+        "linux_server",
+        "cloud_vm",
+        "database_server",
+        "application_server",
+        "container",
+        "kubernetes_workload"
+      ],
+      "collection": {
+        "label": "Targeted copy of temporary paths",
+        "estimated_minutes": 10,
+        "requires_live_host": false,
+        "observer_effect": null,
+        "note": null
+      },
+      "default_priority": "recommended",
+      "answers": "What was staged and not yet cleaned up?",
+      "tags": [
+        "filesystem",
+        "temp"
+      ],
+      "confidence": "high",
+      "notes": "Some platforms clear temporary paths on boot and some do not; treat survival across a reboot as configuration-dependent."
+    },
+    {
+      "artifact_id": "crash_dumps",
+      "name": "Crash dumps and core files",
+      "tier": "temporary_state",
+      "description": "Process cores and system crash dumps already written to disk.",
+      "applies_to": [
+        "windows_workstation",
+        "windows_server",
+        "linux_server",
+        "cloud_vm",
+        "database_server",
+        "application_server",
+        "container",
+        "kubernetes_workload"
+      ],
+      "collection": {
+        "label": "Copy of dump paths",
+        "estimated_minutes": 12,
+        "requires_live_host": false,
+        "observer_effect": null,
+        "note": null
+      },
+      "default_priority": "optional",
+      "answers": "Did the exploit crash something on the way in? A failed attempt often leaves a core file that a successful one does not.",
+      "tags": [
+        "filesystem",
+        "temp"
+      ],
+      "confidence": "high",
+      "notes": null
+    },
+    {
+      "artifact_id": "staged_tooling",
+      "name": "Staged tooling in writable paths",
+      "tier": "temporary_state",
+      "description": "Binaries, scripts and archives left in paths the service account can write to.",
+      "applies_to": [
+        "windows_workstation",
+        "windows_server",
+        "linux_server",
+        "cloud_vm",
+        "database_server",
+        "application_server",
+        "container",
+        "kubernetes_workload"
+      ],
+      "collection": {
+        "label": "Targeted collection of writable paths",
+        "estimated_minutes": 8,
+        "requires_live_host": false,
+        "observer_effect": null,
+        "note": null
+      },
+      "default_priority": "required",
+      "answers": "What did they bring with them, and what does it tell you about what they were doing?",
+      "tags": [
+        "filesystem",
+        "temp"
+      ],
+      "confidence": "high",
+      "notes": null
+    },
+    {
+      "artifact_id": "file_timestamps",
+      "name": "Filesystem timestamps",
+      "tier": "disk_artifact",
+      "description": "Created, modified, accessed and metadata-changed times across the filesystem, as a timeline.",
+      "applies_to": [
+        "windows_workstation",
+        "windows_server",
+        "linux_server",
+        "cloud_vm",
+        "database_server",
+        "application_server",
+        "container",
+        "kubernetes_workload"
+      ],
+      "collection": {
+        "label": "Filesystem metadata timeline",
+        "estimated_minutes": 25,
+        "requires_live_host": false,
+        "observer_effect": "Collection itself updates access times unless the filesystem is mounted read-only.",
+        "note": null
+      },
+      "default_priority": "recommended",
+      "answers": "When did things change, and in what order? The backbone of almost every host timeline.",
+      "tags": [
+        "disk",
+        "filesystem"
+      ],
+      "confidence": "high",
+      "notes": "Timestamps are attacker-modifiable and are routinely modified. Treat the timeline as testimony, not as ground truth."
+    },
+    {
+      "artifact_id": "installed_package_state",
+      "name": "Installed package and version state",
+      "tier": "disk_artifact",
+      "description": "The installed package set, versions, and the package manager transaction history. On an appliance, the running firmware version and its upgrade history.",
+      "applies_to": [
+        "windows_workstation",
+        "windows_server",
+        "linux_server",
+        "cloud_vm",
+        "database_server",
+        "application_server",
+        "container",
+        "kubernetes_workload",
+        "network_appliance"
+      ],
+      "collection": {
+        "label": "Package inventory and history export",
+        "estimated_minutes": 3,
+        "requires_live_host": false,
+        "observer_effect": null,
+        "note": null
+      },
+      "default_priority": "required",
+      "answers": "What was the vulnerable version, and what else was installed or changed recently? This is also the before-state the patch will overwrite.",
+      "tags": [
+        "disk",
+        "config"
+      ],
+      "confidence": "high",
+      "notes": null
+    },
+    {
+      "artifact_id": "persistence_mechanisms",
+      "name": "Persistence mechanisms",
+      "tier": "disk_artifact",
+      "description": "Scheduled tasks, service units, autostart entries, cron, run keys and the other places something arranges to come back.",
+      "applies_to": [
+        "windows_workstation",
+        "windows_server",
+        "linux_server",
+        "cloud_vm",
+        "database_server",
+        "application_server",
+        "container",
+        "kubernetes_workload"
+      ],
+      "collection": {
+        "label": "Autostart and scheduled-task enumeration",
+        "estimated_minutes": 12,
+        "requires_live_host": false,
+        "observer_effect": null,
+        "note": null
+      },
+      "default_priority": "required",
+      "answers": "Will they come back after you fix this? The question a remediation that only patches does not answer.",
+      "tags": [
+        "disk",
+        "persistence",
+        "config"
+      ],
+      "confidence": "high",
+      "notes": null
+    },
+    {
+      "artifact_id": "service_configuration",
+      "name": "Service configuration on disk",
+      "tier": "disk_artifact",
+      "description": "The configuration files the affected service reads at start-up.",
+      "applies_to": [
+        "windows_workstation",
+        "windows_server",
+        "linux_server",
+        "cloud_vm",
+        "database_server",
+        "application_server",
+        "container",
+        "kubernetes_workload",
+        "network_appliance"
+      ],
+      "collection": {
+        "label": "Configuration copy with hashes",
+        "estimated_minutes": 5,
+        "requires_live_host": false,
+        "observer_effect": null,
+        "note": null
+      },
+      "default_priority": "recommended",
+      "answers": "Was the configuration tampered with? Also the record of what the service was before the change you are about to make.",
+      "tags": [
+        "disk",
+        "config"
+      ],
+      "confidence": "high",
+      "notes": null
+    },
+    {
+      "artifact_id": "local_event_logs",
+      "name": "Local event and system logs",
+      "tier": "long_term_record",
+      "description": "Logs held on the host itself, before any forwarding.",
+      "applies_to": [
+        "windows_workstation",
+        "windows_server",
+        "linux_server",
+        "cloud_vm",
+        "database_server",
+        "application_server",
+        "container",
+        "kubernetes_workload"
+      ],
+      "collection": {
+        "label": "Log export from the host",
+        "estimated_minutes": 18,
+        "requires_live_host": false,
+        "observer_effect": null,
+        "note": null
+      },
+      "default_priority": "required",
+      "answers": "What did the host record about itself — including anything that was never forwarded, and anything that was cleared.",
+      "tags": [
+        "log",
+        "host_state"
+      ],
+      "confidence": "high",
+      "notes": "Local logs are attacker-reachable. Their absence is itself a finding; their presence is not proof they are complete."
+    },
+    {
+      "artifact_id": "centralised_logs",
+      "name": "Centralised log copies",
+      "tier": "long_term_record",
+      "description": "The same events as held off the host by the logging platform.",
+      "applies_to": "all",
+      "collection": {
+        "label": "Query and export from the log platform",
+        "estimated_minutes": 10,
+        "requires_live_host": false,
+        "observer_effect": null,
+        "note": "Held off the host, so nothing done to the host destroys them."
+      },
+      "default_priority": "recommended",
+      "answers": "What survived off the host? Usually the only copy an attacker with host access could not edit.",
+      "tags": [
+        "log",
+        "offhost"
+      ],
+      "confidence": "high",
+      "notes": "Bounded by the platform retention window, which may be shorter than the incident."
+    },
+    {
+      "artifact_id": "edr_telemetry",
+      "name": "Endpoint telemetry",
+      "tier": "long_term_record",
+      "description": "Process, file and network telemetry recorded by the endpoint agent.",
+      "applies_to": [
+        "windows_workstation",
+        "windows_server",
+        "linux_server",
+        "cloud_vm",
+        "database_server",
+        "application_server",
+        "container",
+        "kubernetes_workload"
+      ],
+      "collection": {
+        "label": "Export from the endpoint platform",
+        "estimated_minutes": 15,
+        "requires_live_host": false,
+        "observer_effect": null,
+        "note": null
+      },
+      "default_priority": "recommended",
+      "answers": "What did the agent see, including process ancestry for processes that have since exited?",
+      "tags": [
+        "log",
+        "offhost"
+      ],
+      "confidence": "medium",
+      "notes": "Coverage depends on sensor configuration and on whether the agent was running throughout."
+    },
+    {
+      "artifact_id": "cloud_control_plane_logs",
+      "name": "Cloud control-plane audit log",
+      "tier": "long_term_record",
+      "description": "API calls against the cloud account — instance, role, key and network operations.",
+      "applies_to": [
+        "cloud_vm",
+        "container",
+        "kubernetes_workload",
+        "saas_identity"
+      ],
+      "collection": {
+        "label": "Export from the cloud audit service",
+        "estimated_minutes": 12,
+        "requires_live_host": false,
+        "observer_effect": null,
+        "note": "Recorded by the provider, not by the workload. Terminating the workload does not touch it."
+      },
+      "default_priority": "required",
+      "answers": "What did the compromised identity do to the account itself? The one record that survives the instance being destroyed.",
+      "tags": [
+        "log",
+        "offhost",
+        "cloud"
+      ],
+      "confidence": "high",
+      "notes": null
+    }
+  ],
+  "actions": [
+    {
+      "action_id": "capture_process_memory",
+      "name": "Dump target process memory",
+      "category": "capture",
+      "description": "Dump the address space of the affected service only, recovering injected regions and resident secrets belonging to that process. The realistic substitute when a full memory image will not fit the window, and the only memory option on a container, which has no memory image of its own.",
+      "estimated_minutes": 8,
+      "destructive_level": "none",
+      "reversible": true,
+      "applies_to": [
+        "windows_workstation",
+        "windows_server",
+        "linux_server",
+        "cloud_vm",
+        "database_server",
+        "application_server",
+        "container",
+        "kubernetes_workload"
+      ],
+      "effects": [],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "A capture reads. It does not remediate anything and destroys nothing."
+      },
+      "captures": [
+        "process_memory_target",
+        "injected_code_regions",
+        "decrypted_key_material"
+      ],
+      "prerequisites": [],
+      "confidence": "high",
+      "reference": null,
+      "unknown_impact": false,
+      "notes": "Covers the target process only. Injection into any other process on the host is not covered and will not be detected by this step."
+    },
+    {
+      "action_id": "capture_process_state",
+      "name": "Snapshot running state",
+      "category": "capture",
+      "description": "Process list, loaded modules, open handles and service runtime configuration.",
+      "estimated_minutes": 5,
+      "destructive_level": "none",
+      "reversible": true,
+      "applies_to": "all",
+      "effects": [],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "A capture reads. It does not remediate anything and destroys nothing."
+      },
+      "captures": [
+        "running_processes",
+        "loaded_modules",
+        "open_file_handles",
+        "service_runtime_state"
+      ],
+      "prerequisites": [],
+      "confidence": "high",
+      "reference": null,
+      "unknown_impact": false,
+      "notes": "Cheap, fast, and the step most often skipped because it feels redundant next to a memory image. It is not: it is readable immediately."
+    },
+    {
+      "action_id": "capture_network_state",
+      "name": "Snapshot network state",
+      "category": "capture",
+      "description": "Socket table, listeners, neighbour cache and resolver cache.",
+      "estimated_minutes": 4,
+      "destructive_level": "none",
+      "reversible": true,
+      "applies_to": "all",
+      "effects": [],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "A capture reads. It does not remediate anything and destroys nothing."
+      },
+      "captures": [
+        "active_connections",
+        "listening_sockets",
+        "arp_neighbour_cache",
+        "dns_resolver_cache"
+      ],
+      "prerequisites": [],
+      "confidence": "high",
+      "reference": null,
+      "unknown_impact": false,
+      "notes": null
+    },
+    {
+      "action_id": "capture_sessions",
+      "name": "Enumerate sessions and tickets",
+      "category": "capture",
+      "description": "Logged-on sessions, plus the cached Kerberos tickets where the platform has them. Applies everywhere something can be logged in; the ticket cache is host-only and is filtered out where it does not apply.",
+      "estimated_minutes": 4,
+      "destructive_level": "none",
+      "reversible": true,
+      "applies_to": "all",
+      "effects": [],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "A capture reads. It does not remediate anything and destroys nothing."
+      },
+      "captures": [
+        "interactive_sessions",
+        "kerberos_tickets"
+      ],
+      "prerequisites": [],
+      "confidence": "high",
+      "reference": null,
+      "unknown_impact": false,
+      "notes": null
+    },
+    {
+      "action_id": "capture_token_inventory",
+      "name": "Inventory live tokens",
+      "category": "capture",
+      "description": "Record the tokens currently valid for the affected principal, with scopes and expiry, from the identity provider.",
+      "estimated_minutes": 6,
+      "destructive_level": "none",
+      "reversible": true,
+      "applies_to": [
+        "saas_identity",
+        "cloud_vm",
+        "application_server",
+        "kubernetes_workload"
+      ],
+      "effects": [],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "A capture reads. It does not remediate anything and destroys nothing."
+      },
+      "captures": [
+        "active_access_tokens"
+      ],
+      "prerequisites": [],
+      "confidence": "medium",
+      "reference": null,
+      "unknown_impact": false,
+      "notes": "What a provider will tell you about live tokens varies. Some expose sessions rather than tokens, and refresh-token lineage is frequently not exposed at all."
+    },
+    {
+      "action_id": "capture_app_sessions",
+      "name": "Export application session store",
+      "category": "capture",
+      "description": "Export server-side application sessions before anything restarts the application.",
+      "estimated_minutes": 10,
+      "destructive_level": "none",
+      "reversible": true,
+      "applies_to": [
+        "application_server",
+        "container",
+        "kubernetes_workload",
+        "saas_identity"
+      ],
+      "effects": [],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "A capture reads. It does not remediate anything and destroys nothing."
+      },
+      "captures": [
+        "app_session_store"
+      ],
+      "prerequisites": [],
+      "confidence": "medium",
+      "reference": null,
+      "unknown_impact": false,
+      "notes": null
+    },
+    {
+      "action_id": "capture_container_layer",
+      "name": "Checkpoint container writable layer",
+      "category": "capture",
+      "description": "Export the copy-on-write layer and any ephemeral volumes before the workload is replaced.",
+      "estimated_minutes": 15,
+      "destructive_level": "none",
+      "reversible": true,
+      "applies_to": [
+        "container",
+        "kubernetes_workload"
+      ],
+      "effects": [],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "A capture reads. It does not remediate anything and destroys nothing."
+      },
+      "captures": [
+        "container_writable_layer",
+        "ephemeral_volume_contents"
+      ],
+      "prerequisites": [],
+      "confidence": "high",
+      "reference": null,
+      "unknown_impact": false,
+      "notes": "The step that distinguishes a container investigation from a host one. The image is immutable, so everything the attacker left is here."
+    },
+    {
+      "action_id": "capture_runtime_paths",
+      "name": "Collect runtime and temporary paths",
+      "category": "capture",
+      "description": "Memory-backed paths, temporary directories, staged tooling and crash dumps.",
+      "estimated_minutes": 12,
+      "destructive_level": "none",
+      "reversible": true,
+      "applies_to": [
+        "windows_workstation",
+        "windows_server",
+        "linux_server",
+        "cloud_vm",
+        "database_server",
+        "application_server",
+        "container",
+        "kubernetes_workload"
+      ],
+      "effects": [],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "A capture reads. It does not remediate anything and destroys nothing."
+      },
+      "captures": [
+        "shared_memory_segments",
+        "temp_directory_contents",
+        "staged_tooling",
+        "crash_dumps"
+      ],
+      "prerequisites": [],
+      "confidence": "high",
+      "reference": null,
+      "unknown_impact": false,
+      "notes": null
+    },
+    {
+      "action_id": "capture_host_triage",
+      "name": "Collect host triage set",
+      "category": "capture",
+      "description": "Package state, persistence mechanisms, served-path contents, service configuration and a filesystem metadata timeline.",
+      "estimated_minutes": 22,
+      "destructive_level": "none",
+      "reversible": true,
+      "applies_to": [
+        "windows_workstation",
+        "windows_server",
+        "linux_server",
+        "cloud_vm",
+        "database_server",
+        "application_server",
+        "container",
+        "kubernetes_workload"
+      ],
+      "effects": [],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "A capture reads. It does not remediate anything and destroys nothing."
+      },
+      "captures": [
+        "installed_package_state",
+        "persistence_mechanisms",
+        "dropped_web_files",
+        "service_configuration",
+        "file_timestamps"
+      ],
+      "prerequisites": [],
+      "confidence": "high",
+      "reference": null,
+      "unknown_impact": false,
+      "notes": "Includes the pre-patch package state, which the upgrade will overwrite. Skipping this step is how a team ends up unable to say which version was actually exposed."
+    },
+    {
+      "action_id": "capture_volume_snapshot",
+      "name": "Snapshot attached volumes",
+      "category": "capture",
+      "description": "Take provider-side snapshots of the attached volumes.",
+      "estimated_minutes": 12,
+      "destructive_level": "none",
+      "reversible": true,
+      "applies_to": [
+        "cloud_vm",
+        "kubernetes_workload",
+        "container"
+      ],
+      "effects": [],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "A capture reads. It does not remediate anything and destroys nothing."
+      },
+      "captures": [
+        "disk_image"
+      ],
+      "prerequisites": [],
+      "confidence": "high",
+      "reference": null,
+      "unknown_impact": false,
+      "notes": "Fast, and it survives the instance. It does not capture swap or memory, so it is not a substitute for either."
+    },
+    {
+      "action_id": "capture_local_logs",
+      "name": "Export host logs",
+      "category": "capture",
+      "description": "Export the logs held on the host, before anything rotates or rebuilds it.",
+      "estimated_minutes": 18,
+      "destructive_level": "none",
+      "reversible": true,
+      "applies_to": [
+        "windows_workstation",
+        "windows_server",
+        "linux_server",
+        "cloud_vm",
+        "database_server",
+        "application_server",
+        "container",
+        "kubernetes_workload"
+      ],
+      "effects": [],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "A capture reads. It does not remediate anything and destroys nothing."
+      },
+      "captures": [
+        "local_event_logs"
+      ],
+      "prerequisites": [],
+      "confidence": "high",
+      "reference": null,
+      "unknown_impact": false,
+      "notes": null
+    },
+    {
+      "action_id": "capture_offhost_logs",
+      "name": "Export off-host records",
+      "category": "capture",
+      "description": "Pull the centralised log copies and endpoint telemetry for the affected window.",
+      "estimated_minutes": 15,
+      "destructive_level": "none",
+      "reversible": true,
+      "applies_to": "all",
+      "effects": [],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "A capture reads. It does not remediate anything and destroys nothing."
+      },
+      "captures": [
+        "centralised_logs",
+        "edr_telemetry"
+      ],
+      "prerequisites": [],
+      "confidence": "high",
+      "reference": null,
+      "unknown_impact": false,
+      "notes": "These records are off the host, so nothing done to the host destroys them. They can usually wait — the reason to do them early is platform retention, not remediation."
+    },
+    {
+      "action_id": "capture_cloud_logs",
+      "name": "Export cloud audit records",
+      "category": "capture",
+      "description": "Export control-plane audit records for the account and the affected resources.",
+      "estimated_minutes": 12,
+      "destructive_level": "none",
+      "reversible": true,
+      "applies_to": [
+        "cloud_vm",
+        "container",
+        "kubernetes_workload",
+        "saas_identity"
+      ],
+      "effects": [],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "A capture reads. It does not remediate anything and destroys nothing."
+      },
+      "captures": [
+        "cloud_control_plane_logs"
+      ],
+      "prerequisites": [],
+      "confidence": "high",
+      "reference": null,
+      "unknown_impact": false,
+      "notes": null
+    },
+    {
+      "action_id": "service_restart",
+      "name": "Restart affected service",
+      "category": "service",
+      "description": "Stop and start the affected service. The most common remediation step, and the one most often assumed to be harmless.",
+      "estimated_minutes": 4,
+      "destructive_level": "moderate",
+      "reversible": true,
+      "applies_to": "all",
+      "effects": [
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "process_memory_target"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "The process whose memory you wanted is replaced by a fresh one. Its address space is returned to the operating system."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "service_runtime_state"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "The running configuration is rebuilt from disk. Anything set at runtime and never written down is gone."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "decrypted_key_material"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "Secrets held by the service exist only while it is running."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "injected_code_regions"
+          },
+          "impact": "destroys",
+          "confidence": "medium",
+          "rationale": "Code injected into the restarted service goes with it. Injection into any other process on the host is untouched, so this is a partial loss that the plan cannot narrow further."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "open_file_handles"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "A file the attacker unlinked but left open by this service becomes unrecoverable the moment the process ends."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "active_connections"
+          },
+          "impact": "modifies",
+          "confidence": "high",
+          "rationale": "Connections owned by the service are torn down. The rest of the socket table survives, so what you collect afterwards is a partial picture that looks like a complete one."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "listening_sockets"
+          },
+          "impact": "modifies",
+          "confidence": "high",
+          "rationale": "The service unbinds and rebinds. An unexpected extra listener may not come back."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "running_processes"
+          },
+          "impact": "modifies",
+          "confidence": "high",
+          "rationale": "Process identifiers and start times for the service change, which breaks the parent chain from before the restart."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "shared_memory_segments"
+          },
+          "impact": "may_invalidate",
+          "confidence": "medium",
+          "rationale": "Segments owned by the service may be released when it exits."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "app_session_store"
+          },
+          "impact": "unknown",
+          "confidence": "unknown",
+          "rationale": "If the session store is held in the application process it is destroyed; if it is an external cache or table it is untouched. Which one this deployment uses is not recorded here."
+        }
+      ],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches."
+      },
+      "captures": [],
+      "prerequisites": [],
+      "confidence": "high",
+      "reference": "Synthetic mapping. Derived from how service managers replace processes.",
+      "unknown_impact": false,
+      "notes": "A restart is frequently treated as a non-event. It is the single cheapest way to destroy the memory of the process you are investigating."
+    },
+    {
+      "action_id": "process_terminate",
+      "name": "Terminate process",
+      "category": "process",
+      "description": "Kill a specific process — typically one identified as malicious.",
+      "estimated_minutes": 2,
+      "destructive_level": "moderate",
+      "reversible": false,
+      "applies_to": [
+        "windows_workstation",
+        "windows_server",
+        "linux_server",
+        "cloud_vm",
+        "database_server",
+        "application_server",
+        "container",
+        "kubernetes_workload"
+      ],
+      "effects": [
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "process_memory_target"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "The address space is returned to the operating system when the process exits."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "injected_code_regions"
+          },
+          "impact": "destroys",
+          "confidence": "medium",
+          "rationale": "Regions belonging to the terminated process go with it."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "decrypted_key_material"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "Secrets held by the process are freed with its memory."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "open_file_handles"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "Any file the process held open after unlinking it is released, and at that moment it stops being recoverable."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "running_processes"
+          },
+          "impact": "modifies",
+          "confidence": "high",
+          "rationale": "The list changes. Children of the terminated process may be reparented or die with it."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "active_connections"
+          },
+          "impact": "modifies",
+          "confidence": "high",
+          "rationale": "Connections owned by the process close."
+        }
+      ],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches."
+      },
+      "captures": [],
+      "prerequisites": [],
+      "confidence": "high",
+      "reference": "Synthetic mapping.",
+      "unknown_impact": false,
+      "notes": "Terminating a suspicious process before dumping it is the most common way an investigation loses its primary artifact."
+    },
+    {
+      "action_id": "host_isolate",
+      "name": "Isolate host from network",
+      "category": "containment",
+      "description": "Apply network quarantine so the host can no longer reach anything but management.",
+      "estimated_minutes": 5,
+      "destructive_level": "moderate",
+      "reversible": true,
+      "applies_to": [
+        "windows_workstation",
+        "windows_server",
+        "linux_server",
+        "cloud_vm",
+        "database_server",
+        "application_server",
+        "container",
+        "kubernetes_workload"
+      ],
+      "effects": [
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "active_connections"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "Established connections are torn down by the quarantine. The socket table afterwards records the isolation, not the incident."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "arp_neighbour_cache"
+          },
+          "impact": "modifies",
+          "confidence": "medium",
+          "rationale": "Entries age out with nothing refreshing them."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "centralised_logs"
+          },
+          "impact": "may_invalidate",
+          "confidence": "medium",
+          "rationale": "If the host can no longer reach the logging platform, forwarding stops. Events after this point exist only on the host."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "edr_telemetry"
+          },
+          "impact": "unknown",
+          "confidence": "unknown",
+          "rationale": "Whether the endpoint agent keeps its management channel under your quarantine policy is a property of that policy, which is not recorded here."
+        }
+      ],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches."
+      },
+      "captures": [],
+      "prerequisites": [],
+      "confidence": "medium",
+      "reference": "Synthetic mapping.",
+      "unknown_impact": false,
+      "notes": "Isolation is usually filed under \"safe\". It is safe for the estate and destructive for network state — and it may quietly stop the off-host logging you were relying on."
+    },
+    {
+      "action_id": "binary_replace",
+      "name": "Replace binary",
+      "category": "replace",
+      "description": "Overwrite the vulnerable executable or library in place.",
+      "estimated_minutes": 6,
+      "destructive_level": "low",
+      "reversible": true,
+      "applies_to": [
+        "windows_workstation",
+        "windows_server",
+        "linux_server",
+        "cloud_vm",
+        "database_server",
+        "application_server",
+        "container",
+        "kubernetes_workload"
+      ],
+      "effects": [
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "file_timestamps"
+          },
+          "impact": "modifies",
+          "confidence": "high",
+          "rationale": "The replaced file carries the replacement times. Whatever the original timestamps said is gone unless already recorded."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "installed_package_state"
+          },
+          "impact": "modifies",
+          "confidence": "high",
+          "rationale": "The on-disk state no longer matches what the package manager believes is installed."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "disk_image"
+          },
+          "impact": "may_invalidate",
+          "confidence": "medium",
+          "rationale": "An image taken after this point no longer contains the vulnerable binary, which is often the artifact the investigation needs to hash."
+        }
+      ],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches."
+      },
+      "captures": [],
+      "prerequisites": [],
+      "confidence": "high",
+      "reference": "Synthetic mapping.",
+      "unknown_impact": false,
+      "notes": null
+    },
+    {
+      "action_id": "package_upgrade",
+      "name": "Apply package upgrade",
+      "category": "patch",
+      "description": "Upgrade the vulnerable package through the platform package manager.",
+      "estimated_minutes": 12,
+      "destructive_level": "low",
+      "reversible": true,
+      "applies_to": "all",
+      "effects": [
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "installed_package_state"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "The on-disk state of the vulnerable version is overwritten. This is the record of what you were actually exposed to, and the patch is what removes it — which is why it is captured before rather than after."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "file_timestamps"
+          },
+          "impact": "modifies",
+          "confidence": "high",
+          "rationale": "Every file the upgrade touches gets new times, over the top of the timeline you wanted."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "service_configuration"
+          },
+          "impact": "may_invalidate",
+          "confidence": "medium",
+          "rationale": "Upgrades may replace, merge or back up configuration files. A tampered configuration can be quietly normalised."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "disk_image"
+          },
+          "impact": "may_invalidate",
+          "confidence": "medium",
+          "rationale": "An image taken afterwards is of the patched system, not the exposed one."
+        }
+      ],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches."
+      },
+      "captures": [],
+      "prerequisites": [],
+      "confidence": "high",
+      "reference": "Synthetic mapping.",
+      "unknown_impact": false,
+      "notes": "Modelled as the package operation alone. Most package managers also restart the service; where yours does, add the restart as its own step so its footprint is counted."
+    },
+    {
+      "action_id": "config_change",
+      "name": "Apply configuration change",
+      "category": "config",
+      "description": "Change the service configuration — a mitigation, a hardening step, or disabling the vulnerable feature.",
+      "estimated_minutes": 6,
+      "destructive_level": "low",
+      "reversible": true,
+      "applies_to": "all",
+      "effects": [
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "service_configuration"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "The pre-change configuration is overwritten. If it had been tampered with, the tampering is what you have just deleted."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "file_timestamps"
+          },
+          "impact": "modifies",
+          "confidence": "medium",
+          "rationale": "The configuration files carry new modification times."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "service_runtime_state"
+          },
+          "impact": "modifies",
+          "confidence": "medium",
+          "rationale": "The running configuration diverges from what it was when the incident occurred."
+        }
+      ],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches."
+      },
+      "captures": [],
+      "prerequisites": [],
+      "confidence": "high",
+      "reference": "Synthetic mapping.",
+      "unknown_impact": false,
+      "notes": null
+    },
+    {
+      "action_id": "credential_rotate",
+      "name": "Rotate credential",
+      "category": "credential",
+      "description": "Issue a new secret for the affected service account, key or certificate.",
+      "estimated_minutes": 10,
+      "destructive_level": "low",
+      "reversible": false,
+      "applies_to": "all",
+      "effects": [
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "active_access_tokens"
+          },
+          "impact": "may_invalidate",
+          "confidence": "high",
+          "rationale": "Rotation is the point of the action, but it also ends your ability to observe what the old credential could still reach. Inventory the live tokens first or the blast radius becomes unknowable."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "identity_signin_logs"
+          },
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Sign-in history is a record of the past. Changing a secret does not edit it."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "identity_audit_logs"
+          },
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "The directory audit trail is appended to, not rewritten."
+        }
+      ],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches."
+      },
+      "captures": [],
+      "prerequisites": [],
+      "confidence": "medium",
+      "reference": "Synthetic mapping.",
+      "unknown_impact": false,
+      "notes": "Rotation does not destroy stored records. What it destroys is visibility: after it, nobody can enumerate what the compromised credential was still able to do."
+    },
+    {
+      "action_id": "token_revoke",
+      "name": "Revoke tokens",
+      "category": "session",
+      "description": "Revoke issued access and refresh tokens for the affected principal.",
+      "estimated_minutes": 4,
+      "destructive_level": "moderate",
+      "reversible": false,
+      "applies_to": [
+        "saas_identity",
+        "cloud_vm",
+        "application_server",
+        "kubernetes_workload"
+      ],
+      "effects": [
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "active_access_tokens"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "The live token inventory is what is being revoked. Afterwards the set of tokens that existed, and the scopes they carried, is no longer observable from the provider."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "app_session_store"
+          },
+          "impact": "modifies",
+          "confidence": "medium",
+          "rationale": "Sessions backed by a revoked token become invalid and may be reaped."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "identity_signin_logs"
+          },
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "History is unaffected."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "identity_audit_logs"
+          },
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "The revocation is appended to the audit trail."
+        }
+      ],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches."
+      },
+      "captures": [],
+      "prerequisites": [],
+      "confidence": "medium",
+      "reference": "Synthetic mapping.",
+      "unknown_impact": false,
+      "notes": "Necessary, and it erases the answer to \"what could they still have done\". Inventory first; the inventory takes six minutes."
+    },
+    {
+      "action_id": "session_terminate",
+      "name": "Terminate active sessions",
+      "category": "session",
+      "description": "Force-close interactive and remote sessions on the affected asset or principal.",
+      "estimated_minutes": 3,
+      "destructive_level": "moderate",
+      "reversible": false,
+      "applies_to": "all",
+      "effects": [
+        {
+          "target": {
+            "kind": "tier",
+            "tier": "session_state"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "The sessions are the thing being ended."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "active_connections"
+          },
+          "impact": "modifies",
+          "confidence": "high",
+          "rationale": "Connections carrying those sessions close."
+        },
+        {
+          "target": {
+            "kind": "tag",
+            "tag": "offhost"
+          },
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Off-host records are unaffected."
+        }
+      ],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches."
+      },
+      "captures": [],
+      "prerequisites": [],
+      "confidence": "high",
+      "reference": "Synthetic mapping.",
+      "unknown_impact": false,
+      "notes": null
+    },
+    {
+      "action_id": "container_redeploy",
+      "name": "Redeploy container",
+      "category": "redeploy",
+      "description": "Replace the running container with a fresh one from the patched image.",
+      "estimated_minutes": 8,
+      "destructive_level": "high",
+      "reversible": false,
+      "applies_to": [
+        "container",
+        "kubernetes_workload"
+      ],
+      "effects": [
+        {
+          "target": {
+            "kind": "tier",
+            "tier": "volatile_memory"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "The workload process is replaced. Its memory goes with it."
+        },
+        {
+          "target": {
+            "kind": "tier",
+            "tier": "process_state"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "Nothing from the previous container is still running."
+        },
+        {
+          "target": {
+            "kind": "tier",
+            "tier": "network_state"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "The network namespace is torn down with the container."
+        },
+        {
+          "target": {
+            "kind": "tier",
+            "tier": "session_state"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "In-workload sessions end with the workload."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "container_writable_layer"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "The copy-on-write layer is discarded. The image is immutable, so everything the attacker wrote lived in that layer and nowhere else — this single step is the whole forensic cost of a redeploy."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "ephemeral_volume_contents"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "Volumes bound to the workload lifetime are removed with it."
+        },
+        {
+          "target": {
+            "kind": "tier",
+            "tier": "temporary_state"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "Temporary paths inside the container are part of the discarded layer."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "local_event_logs"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "Logs written inside the container are in the writable layer."
+        },
+        {
+          "target": {
+            "kind": "tag",
+            "tag": "offhost"
+          },
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Anything already shipped off the workload is untouched."
+        },
+        {
+          "target": {
+            "kind": "tag",
+            "tag": "cloud"
+          },
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Control-plane records are kept by the provider, not by the workload."
+        }
+      ],
+      "default_effect": {
+        "impact": "destroys",
+        "confidence": "medium",
+        "rationale": "This action replaces the host. Anything held on it and not explicitly listed above should be assumed gone."
+      },
+      "captures": [],
+      "prerequisites": [],
+      "confidence": "high",
+      "reference": "Synthetic mapping.",
+      "unknown_impact": false,
+      "notes": "Redeployment is the default cloud remediation and the fastest way to erase a container investigation. The image being clean is exactly why the evidence is not in it."
+    },
+    {
+      "action_id": "instance_terminate",
+      "name": "Terminate instance",
+      "category": "terminate",
+      "description": "Destroy the cloud instance outright.",
+      "estimated_minutes": 6,
+      "destructive_level": "high",
+      "reversible": false,
+      "applies_to": [
+        "cloud_vm",
+        "container",
+        "kubernetes_workload"
+      ],
+      "effects": [
+        {
+          "target": {
+            "kind": "tier",
+            "tier": "volatile_memory"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "The instance ceases to exist."
+        },
+        {
+          "target": {
+            "kind": "tier",
+            "tier": "process_state"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "The instance ceases to exist."
+        },
+        {
+          "target": {
+            "kind": "tier",
+            "tier": "network_state"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "The instance ceases to exist."
+        },
+        {
+          "target": {
+            "kind": "tier",
+            "tier": "session_state"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "The instance ceases to exist."
+        },
+        {
+          "target": {
+            "kind": "tier",
+            "tier": "runtime_artifact"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "The instance ceases to exist."
+        },
+        {
+          "target": {
+            "kind": "tier",
+            "tier": "temporary_state"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "The instance ceases to exist."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "disk_image"
+          },
+          "impact": "unknown",
+          "confidence": "unknown",
+          "rationale": "Whether the root volume survives termination depends on the delete-on-termination setting for that volume. The plan does not record it, so neither does this. Check it before, not after."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "local_event_logs"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "Held on the volume attached to a resource that is being destroyed."
+        },
+        {
+          "target": {
+            "kind": "tag",
+            "tag": "offhost"
+          },
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Anything already shipped off the instance is untouched."
+        },
+        {
+          "target": {
+            "kind": "tag",
+            "tag": "cloud"
+          },
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Control-plane audit records belong to the account, not to the instance. They are the one thing termination cannot reach."
+        }
+      ],
+      "default_effect": {
+        "impact": "destroys",
+        "confidence": "medium",
+        "rationale": "This action replaces the host. Anything held on it and not explicitly listed above should be assumed gone."
+      },
+      "captures": [],
+      "prerequisites": [],
+      "confidence": "high",
+      "reference": "Synthetic mapping.",
+      "unknown_impact": false,
+      "notes": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "name": "Verify remediation",
+      "category": "verify",
+      "description": "Confirm the fix is in place and the service is healthy.",
+      "estimated_minutes": 10,
+      "destructive_level": "none",
+      "reversible": true,
+      "applies_to": "all",
+      "effects": [],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "Verification reads the system. It changes nothing in the evidence catalogue."
+      },
+      "captures": [],
+      "prerequisites": [],
+      "confidence": "high",
+      "reference": null,
+      "unknown_impact": false,
+      "notes": null
+    }
+  ],
+  "impacts": [
+    {
+      "action_id": "capture_offhost_logs",
+      "artifact_id": "process_memory_target",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_offhost_logs",
+      "artifact_id": "injected_code_regions",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_offhost_logs",
+      "artifact_id": "decrypted_key_material",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_offhost_logs",
+      "artifact_id": "running_processes",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_offhost_logs",
+      "artifact_id": "loaded_modules",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_offhost_logs",
+      "artifact_id": "open_file_handles",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_offhost_logs",
+      "artifact_id": "service_runtime_state",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_offhost_logs",
+      "artifact_id": "active_connections",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_offhost_logs",
+      "artifact_id": "listening_sockets",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_offhost_logs",
+      "artifact_id": "interactive_sessions",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_offhost_logs",
+      "artifact_id": "active_access_tokens",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_offhost_logs",
+      "artifact_id": "app_session_store",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_offhost_logs",
+      "artifact_id": "container_writable_layer",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_offhost_logs",
+      "artifact_id": "ephemeral_volume_contents",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_offhost_logs",
+      "artifact_id": "shared_memory_segments",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_offhost_logs",
+      "artifact_id": "temp_directory_contents",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_offhost_logs",
+      "artifact_id": "crash_dumps",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_offhost_logs",
+      "artifact_id": "staged_tooling",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_offhost_logs",
+      "artifact_id": "file_timestamps",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_offhost_logs",
+      "artifact_id": "installed_package_state",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_offhost_logs",
+      "artifact_id": "persistence_mechanisms",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_offhost_logs",
+      "artifact_id": "service_configuration",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_offhost_logs",
+      "artifact_id": "local_event_logs",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_offhost_logs",
+      "artifact_id": "centralised_logs",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_offhost_logs",
+      "artifact_id": "edr_telemetry",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_offhost_logs",
+      "artifact_id": "cloud_control_plane_logs",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_cloud_logs",
+      "artifact_id": "process_memory_target",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_cloud_logs",
+      "artifact_id": "injected_code_regions",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_cloud_logs",
+      "artifact_id": "decrypted_key_material",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_cloud_logs",
+      "artifact_id": "running_processes",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_cloud_logs",
+      "artifact_id": "loaded_modules",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_cloud_logs",
+      "artifact_id": "open_file_handles",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_cloud_logs",
+      "artifact_id": "service_runtime_state",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_cloud_logs",
+      "artifact_id": "active_connections",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_cloud_logs",
+      "artifact_id": "listening_sockets",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_cloud_logs",
+      "artifact_id": "interactive_sessions",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_cloud_logs",
+      "artifact_id": "active_access_tokens",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_cloud_logs",
+      "artifact_id": "app_session_store",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_cloud_logs",
+      "artifact_id": "container_writable_layer",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_cloud_logs",
+      "artifact_id": "ephemeral_volume_contents",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_cloud_logs",
+      "artifact_id": "shared_memory_segments",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_cloud_logs",
+      "artifact_id": "temp_directory_contents",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_cloud_logs",
+      "artifact_id": "crash_dumps",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_cloud_logs",
+      "artifact_id": "staged_tooling",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_cloud_logs",
+      "artifact_id": "file_timestamps",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_cloud_logs",
+      "artifact_id": "installed_package_state",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_cloud_logs",
+      "artifact_id": "persistence_mechanisms",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_cloud_logs",
+      "artifact_id": "service_configuration",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_cloud_logs",
+      "artifact_id": "local_event_logs",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_cloud_logs",
+      "artifact_id": "centralised_logs",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_cloud_logs",
+      "artifact_id": "edr_telemetry",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_cloud_logs",
+      "artifact_id": "cloud_control_plane_logs",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "container_redeploy",
+      "artifact_id": "process_memory_target",
+      "impact": "destroys",
+      "confidence": "high",
+      "rationale": "The workload process is replaced. Its memory goes with it.",
+      "matched_by": "tier",
+      "matched_on": "volatile_memory"
+    },
+    {
+      "action_id": "container_redeploy",
+      "artifact_id": "injected_code_regions",
+      "impact": "destroys",
+      "confidence": "high",
+      "rationale": "The workload process is replaced. Its memory goes with it.",
+      "matched_by": "tier",
+      "matched_on": "volatile_memory"
+    },
+    {
+      "action_id": "container_redeploy",
+      "artifact_id": "decrypted_key_material",
+      "impact": "destroys",
+      "confidence": "high",
+      "rationale": "The workload process is replaced. Its memory goes with it.",
+      "matched_by": "tier",
+      "matched_on": "volatile_memory"
+    },
+    {
+      "action_id": "container_redeploy",
+      "artifact_id": "running_processes",
+      "impact": "destroys",
+      "confidence": "high",
+      "rationale": "Nothing from the previous container is still running.",
+      "matched_by": "tier",
+      "matched_on": "process_state"
+    },
+    {
+      "action_id": "container_redeploy",
+      "artifact_id": "loaded_modules",
+      "impact": "destroys",
+      "confidence": "high",
+      "rationale": "Nothing from the previous container is still running.",
+      "matched_by": "tier",
+      "matched_on": "process_state"
+    },
+    {
+      "action_id": "container_redeploy",
+      "artifact_id": "open_file_handles",
+      "impact": "destroys",
+      "confidence": "high",
+      "rationale": "Nothing from the previous container is still running.",
+      "matched_by": "tier",
+      "matched_on": "process_state"
+    },
+    {
+      "action_id": "container_redeploy",
+      "artifact_id": "service_runtime_state",
+      "impact": "destroys",
+      "confidence": "high",
+      "rationale": "Nothing from the previous container is still running.",
+      "matched_by": "tier",
+      "matched_on": "process_state"
+    },
+    {
+      "action_id": "container_redeploy",
+      "artifact_id": "active_connections",
+      "impact": "destroys",
+      "confidence": "high",
+      "rationale": "The network namespace is torn down with the container.",
+      "matched_by": "tier",
+      "matched_on": "network_state"
+    },
+    {
+      "action_id": "container_redeploy",
+      "artifact_id": "listening_sockets",
+      "impact": "destroys",
+      "confidence": "high",
+      "rationale": "The network namespace is torn down with the container.",
+      "matched_by": "tier",
+      "matched_on": "network_state"
+    },
+    {
+      "action_id": "container_redeploy",
+      "artifact_id": "interactive_sessions",
+      "impact": "destroys",
+      "confidence": "high",
+      "rationale": "In-workload sessions end with the workload.",
+      "matched_by": "tier",
+      "matched_on": "session_state"
+    },
+    {
+      "action_id": "container_redeploy",
+      "artifact_id": "active_access_tokens",
+      "impact": "destroys",
+      "confidence": "high",
+      "rationale": "In-workload sessions end with the workload.",
+      "matched_by": "tier",
+      "matched_on": "session_state"
+    },
+    {
+      "action_id": "container_redeploy",
+      "artifact_id": "app_session_store",
+      "impact": "destroys",
+      "confidence": "high",
+      "rationale": "In-workload sessions end with the workload.",
+      "matched_by": "tier",
+      "matched_on": "session_state"
+    },
+    {
+      "action_id": "container_redeploy",
+      "artifact_id": "container_writable_layer",
+      "impact": "destroys",
+      "confidence": "high",
+      "rationale": "The copy-on-write layer is discarded. The image is immutable, so everything the attacker wrote lived in that layer and nowhere else — this single step is the whole forensic cost of a redeploy.",
+      "matched_by": "artifact",
+      "matched_on": null
+    },
+    {
+      "action_id": "container_redeploy",
+      "artifact_id": "ephemeral_volume_contents",
+      "impact": "destroys",
+      "confidence": "high",
+      "rationale": "Volumes bound to the workload lifetime are removed with it.",
+      "matched_by": "artifact",
+      "matched_on": null
+    },
+    {
+      "action_id": "container_redeploy",
+      "artifact_id": "shared_memory_segments",
+      "impact": "destroys",
+      "confidence": "medium",
+      "rationale": "This action replaces the host. Anything held on it and not explicitly listed above should be assumed gone.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "container_redeploy",
+      "artifact_id": "temp_directory_contents",
+      "impact": "destroys",
+      "confidence": "high",
+      "rationale": "Temporary paths inside the container are part of the discarded layer.",
+      "matched_by": "tier",
+      "matched_on": "temporary_state"
+    },
+    {
+      "action_id": "container_redeploy",
+      "artifact_id": "crash_dumps",
+      "impact": "destroys",
+      "confidence": "high",
+      "rationale": "Temporary paths inside the container are part of the discarded layer.",
+      "matched_by": "tier",
+      "matched_on": "temporary_state"
+    },
+    {
+      "action_id": "container_redeploy",
+      "artifact_id": "staged_tooling",
+      "impact": "destroys",
+      "confidence": "high",
+      "rationale": "Temporary paths inside the container are part of the discarded layer.",
+      "matched_by": "tier",
+      "matched_on": "temporary_state"
+    },
+    {
+      "action_id": "container_redeploy",
+      "artifact_id": "file_timestamps",
+      "impact": "destroys",
+      "confidence": "medium",
+      "rationale": "This action replaces the host. Anything held on it and not explicitly listed above should be assumed gone.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "container_redeploy",
+      "artifact_id": "installed_package_state",
+      "impact": "destroys",
+      "confidence": "medium",
+      "rationale": "This action replaces the host. Anything held on it and not explicitly listed above should be assumed gone.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "container_redeploy",
+      "artifact_id": "persistence_mechanisms",
+      "impact": "destroys",
+      "confidence": "medium",
+      "rationale": "This action replaces the host. Anything held on it and not explicitly listed above should be assumed gone.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "container_redeploy",
+      "artifact_id": "service_configuration",
+      "impact": "destroys",
+      "confidence": "medium",
+      "rationale": "This action replaces the host. Anything held on it and not explicitly listed above should be assumed gone.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "container_redeploy",
+      "artifact_id": "local_event_logs",
+      "impact": "destroys",
+      "confidence": "high",
+      "rationale": "Logs written inside the container are in the writable layer.",
+      "matched_by": "artifact",
+      "matched_on": null
+    },
+    {
+      "action_id": "container_redeploy",
+      "artifact_id": "centralised_logs",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Anything already shipped off the workload is untouched.",
+      "matched_by": "tag",
+      "matched_on": "offhost"
+    },
+    {
+      "action_id": "container_redeploy",
+      "artifact_id": "edr_telemetry",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Anything already shipped off the workload is untouched.",
+      "matched_by": "tag",
+      "matched_on": "offhost"
+    },
+    {
+      "action_id": "container_redeploy",
+      "artifact_id": "cloud_control_plane_logs",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Anything already shipped off the workload is untouched.",
+      "matched_by": "tag",
+      "matched_on": "offhost"
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "process_memory_target",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "injected_code_regions",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "decrypted_key_material",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "running_processes",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "loaded_modules",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "open_file_handles",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "service_runtime_state",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "active_connections",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "listening_sockets",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "interactive_sessions",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "active_access_tokens",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "app_session_store",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "container_writable_layer",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "ephemeral_volume_contents",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "shared_memory_segments",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "temp_directory_contents",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "crash_dumps",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "staged_tooling",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "file_timestamps",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "installed_package_state",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "persistence_mechanisms",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "service_configuration",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "local_event_logs",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "centralised_logs",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "edr_telemetry",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "cloud_control_plane_logs",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    }
+  ],
+  "footprints": [
+    {
+      "step_id": "s009",
+      "action_id": "capture_offhost_logs",
+      "index": 0,
+      "name": "Export off-host records",
+      "category": "capture",
+      "destroys": [],
+      "modifies": [],
+      "may_invalidate": [],
+      "preserves": [
+        {
+          "action_id": "capture_offhost_logs",
+          "artifact_id": "process_memory_target",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_offhost_logs",
+          "artifact_id": "injected_code_regions",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_offhost_logs",
+          "artifact_id": "decrypted_key_material",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_offhost_logs",
+          "artifact_id": "running_processes",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_offhost_logs",
+          "artifact_id": "loaded_modules",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_offhost_logs",
+          "artifact_id": "open_file_handles",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_offhost_logs",
+          "artifact_id": "service_runtime_state",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_offhost_logs",
+          "artifact_id": "active_connections",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_offhost_logs",
+          "artifact_id": "listening_sockets",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_offhost_logs",
+          "artifact_id": "interactive_sessions",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_offhost_logs",
+          "artifact_id": "active_access_tokens",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_offhost_logs",
+          "artifact_id": "app_session_store",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_offhost_logs",
+          "artifact_id": "container_writable_layer",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_offhost_logs",
+          "artifact_id": "ephemeral_volume_contents",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_offhost_logs",
+          "artifact_id": "shared_memory_segments",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_offhost_logs",
+          "artifact_id": "temp_directory_contents",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_offhost_logs",
+          "artifact_id": "crash_dumps",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_offhost_logs",
+          "artifact_id": "staged_tooling",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_offhost_logs",
+          "artifact_id": "file_timestamps",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_offhost_logs",
+          "artifact_id": "installed_package_state",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_offhost_logs",
+          "artifact_id": "persistence_mechanisms",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_offhost_logs",
+          "artifact_id": "service_configuration",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_offhost_logs",
+          "artifact_id": "local_event_logs",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_offhost_logs",
+          "artifact_id": "centralised_logs",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_offhost_logs",
+          "artifact_id": "edr_telemetry",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_offhost_logs",
+          "artifact_id": "cloud_control_plane_logs",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        }
+      ],
+      "unknown": [],
+      "harmful": false,
+      "destructive_level": "none",
+      "estimated_minutes": 15,
+      "reversible": true,
+      "confidence": "high"
+    },
+    {
+      "step_id": "s010",
+      "action_id": "capture_cloud_logs",
+      "index": 1,
+      "name": "Export cloud audit records",
+      "category": "capture",
+      "destroys": [],
+      "modifies": [],
+      "may_invalidate": [],
+      "preserves": [
+        {
+          "action_id": "capture_cloud_logs",
+          "artifact_id": "process_memory_target",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_cloud_logs",
+          "artifact_id": "injected_code_regions",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_cloud_logs",
+          "artifact_id": "decrypted_key_material",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_cloud_logs",
+          "artifact_id": "running_processes",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_cloud_logs",
+          "artifact_id": "loaded_modules",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_cloud_logs",
+          "artifact_id": "open_file_handles",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_cloud_logs",
+          "artifact_id": "service_runtime_state",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_cloud_logs",
+          "artifact_id": "active_connections",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_cloud_logs",
+          "artifact_id": "listening_sockets",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_cloud_logs",
+          "artifact_id": "interactive_sessions",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_cloud_logs",
+          "artifact_id": "active_access_tokens",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_cloud_logs",
+          "artifact_id": "app_session_store",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_cloud_logs",
+          "artifact_id": "container_writable_layer",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_cloud_logs",
+          "artifact_id": "ephemeral_volume_contents",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_cloud_logs",
+          "artifact_id": "shared_memory_segments",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_cloud_logs",
+          "artifact_id": "temp_directory_contents",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_cloud_logs",
+          "artifact_id": "crash_dumps",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_cloud_logs",
+          "artifact_id": "staged_tooling",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_cloud_logs",
+          "artifact_id": "file_timestamps",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_cloud_logs",
+          "artifact_id": "installed_package_state",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_cloud_logs",
+          "artifact_id": "persistence_mechanisms",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_cloud_logs",
+          "artifact_id": "service_configuration",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_cloud_logs",
+          "artifact_id": "local_event_logs",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_cloud_logs",
+          "artifact_id": "centralised_logs",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_cloud_logs",
+          "artifact_id": "edr_telemetry",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_cloud_logs",
+          "artifact_id": "cloud_control_plane_logs",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        }
+      ],
+      "unknown": [],
+      "harmful": false,
+      "destructive_level": "none",
+      "estimated_minutes": 12,
+      "reversible": true,
+      "confidence": "high"
+    },
+    {
+      "step_id": "s011",
+      "action_id": "container_redeploy",
+      "index": 2,
+      "name": "Redeploy container",
+      "category": "redeploy",
+      "destroys": [
+        {
+          "action_id": "container_redeploy",
+          "artifact_id": "process_memory_target",
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "The workload process is replaced. Its memory goes with it.",
+          "matched_by": "tier",
+          "matched_on": "volatile_memory"
+        },
+        {
+          "action_id": "container_redeploy",
+          "artifact_id": "injected_code_regions",
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "The workload process is replaced. Its memory goes with it.",
+          "matched_by": "tier",
+          "matched_on": "volatile_memory"
+        },
+        {
+          "action_id": "container_redeploy",
+          "artifact_id": "decrypted_key_material",
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "The workload process is replaced. Its memory goes with it.",
+          "matched_by": "tier",
+          "matched_on": "volatile_memory"
+        },
+        {
+          "action_id": "container_redeploy",
+          "artifact_id": "running_processes",
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "Nothing from the previous container is still running.",
+          "matched_by": "tier",
+          "matched_on": "process_state"
+        },
+        {
+          "action_id": "container_redeploy",
+          "artifact_id": "loaded_modules",
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "Nothing from the previous container is still running.",
+          "matched_by": "tier",
+          "matched_on": "process_state"
+        },
+        {
+          "action_id": "container_redeploy",
+          "artifact_id": "open_file_handles",
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "Nothing from the previous container is still running.",
+          "matched_by": "tier",
+          "matched_on": "process_state"
+        },
+        {
+          "action_id": "container_redeploy",
+          "artifact_id": "service_runtime_state",
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "Nothing from the previous container is still running.",
+          "matched_by": "tier",
+          "matched_on": "process_state"
+        },
+        {
+          "action_id": "container_redeploy",
+          "artifact_id": "active_connections",
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "The network namespace is torn down with the container.",
+          "matched_by": "tier",
+          "matched_on": "network_state"
+        },
+        {
+          "action_id": "container_redeploy",
+          "artifact_id": "listening_sockets",
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "The network namespace is torn down with the container.",
+          "matched_by": "tier",
+          "matched_on": "network_state"
+        },
+        {
+          "action_id": "container_redeploy",
+          "artifact_id": "interactive_sessions",
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "In-workload sessions end with the workload.",
+          "matched_by": "tier",
+          "matched_on": "session_state"
+        },
+        {
+          "action_id": "container_redeploy",
+          "artifact_id": "active_access_tokens",
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "In-workload sessions end with the workload.",
+          "matched_by": "tier",
+          "matched_on": "session_state"
+        },
+        {
+          "action_id": "container_redeploy",
+          "artifact_id": "app_session_store",
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "In-workload sessions end with the workload.",
+          "matched_by": "tier",
+          "matched_on": "session_state"
+        },
+        {
+          "action_id": "container_redeploy",
+          "artifact_id": "container_writable_layer",
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "The copy-on-write layer is discarded. The image is immutable, so everything the attacker wrote lived in that layer and nowhere else — this single step is the whole forensic cost of a redeploy.",
+          "matched_by": "artifact",
+          "matched_on": null
+        },
+        {
+          "action_id": "container_redeploy",
+          "artifact_id": "ephemeral_volume_contents",
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "Volumes bound to the workload lifetime are removed with it.",
+          "matched_by": "artifact",
+          "matched_on": null
+        },
+        {
+          "action_id": "container_redeploy",
+          "artifact_id": "shared_memory_segments",
+          "impact": "destroys",
+          "confidence": "medium",
+          "rationale": "This action replaces the host. Anything held on it and not explicitly listed above should be assumed gone.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "container_redeploy",
+          "artifact_id": "temp_directory_contents",
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "Temporary paths inside the container are part of the discarded layer.",
+          "matched_by": "tier",
+          "matched_on": "temporary_state"
+        },
+        {
+          "action_id": "container_redeploy",
+          "artifact_id": "crash_dumps",
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "Temporary paths inside the container are part of the discarded layer.",
+          "matched_by": "tier",
+          "matched_on": "temporary_state"
+        },
+        {
+          "action_id": "container_redeploy",
+          "artifact_id": "staged_tooling",
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "Temporary paths inside the container are part of the discarded layer.",
+          "matched_by": "tier",
+          "matched_on": "temporary_state"
+        },
+        {
+          "action_id": "container_redeploy",
+          "artifact_id": "file_timestamps",
+          "impact": "destroys",
+          "confidence": "medium",
+          "rationale": "This action replaces the host. Anything held on it and not explicitly listed above should be assumed gone.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "container_redeploy",
+          "artifact_id": "installed_package_state",
+          "impact": "destroys",
+          "confidence": "medium",
+          "rationale": "This action replaces the host. Anything held on it and not explicitly listed above should be assumed gone.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "container_redeploy",
+          "artifact_id": "persistence_mechanisms",
+          "impact": "destroys",
+          "confidence": "medium",
+          "rationale": "This action replaces the host. Anything held on it and not explicitly listed above should be assumed gone.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "container_redeploy",
+          "artifact_id": "service_configuration",
+          "impact": "destroys",
+          "confidence": "medium",
+          "rationale": "This action replaces the host. Anything held on it and not explicitly listed above should be assumed gone.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "container_redeploy",
+          "artifact_id": "local_event_logs",
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "Logs written inside the container are in the writable layer.",
+          "matched_by": "artifact",
+          "matched_on": null
+        }
+      ],
+      "modifies": [],
+      "may_invalidate": [],
+      "preserves": [
+        {
+          "action_id": "container_redeploy",
+          "artifact_id": "centralised_logs",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Anything already shipped off the workload is untouched.",
+          "matched_by": "tag",
+          "matched_on": "offhost"
+        },
+        {
+          "action_id": "container_redeploy",
+          "artifact_id": "edr_telemetry",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Anything already shipped off the workload is untouched.",
+          "matched_by": "tag",
+          "matched_on": "offhost"
+        },
+        {
+          "action_id": "container_redeploy",
+          "artifact_id": "cloud_control_plane_logs",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Anything already shipped off the workload is untouched.",
+          "matched_by": "tag",
+          "matched_on": "offhost"
+        }
+      ],
+      "unknown": [],
+      "harmful": true,
+      "destructive_level": "high",
+      "estimated_minutes": 8,
+      "reversible": false,
+      "confidence": "medium"
+    },
+    {
+      "step_id": "s012",
+      "action_id": "verify_remediation",
+      "index": 3,
+      "name": "Verify remediation",
+      "category": "verify",
+      "destroys": [],
+      "modifies": [],
+      "may_invalidate": [],
+      "preserves": [
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "process_memory_target",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "injected_code_regions",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "decrypted_key_material",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "running_processes",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "loaded_modules",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "open_file_handles",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "service_runtime_state",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "active_connections",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "listening_sockets",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "interactive_sessions",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "active_access_tokens",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "app_session_store",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "container_writable_layer",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "ephemeral_volume_contents",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "shared_memory_segments",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "temp_directory_contents",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "crash_dumps",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "staged_tooling",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "file_timestamps",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "installed_package_state",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "persistence_mechanisms",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "service_configuration",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "local_event_logs",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "centralised_logs",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "edr_telemetry",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "cloud_control_plane_logs",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        }
+      ],
+      "unknown": [],
+      "harmful": false,
+      "destructive_level": "none",
+      "estimated_minutes": 10,
+      "reversible": true,
+      "confidence": "high"
+    }
+  ],
+  "outcomes": [
+    {
+      "artifact_id": "process_memory_target",
+      "name": "Target process memory",
+      "tier": "volatile_memory",
+      "priority": "required",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "high",
+        "rationale": "The workload process is replaced. Its memory goes with it."
+      },
+      "explanation": "step 3, \"Redeploy container\", destroys it. No step captures it first. The workload process is replaced. Its memory goes with it.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "injected_code_regions",
+      "name": "Unbacked executable memory",
+      "tier": "volatile_memory",
+      "priority": "required",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "high",
+        "rationale": "The workload process is replaced. Its memory goes with it."
+      },
+      "explanation": "step 3, \"Redeploy container\", destroys it. No step captures it first. The workload process is replaced. Its memory goes with it.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "decrypted_key_material",
+      "name": "Decrypted key material in memory",
+      "tier": "volatile_memory",
+      "priority": "recommended",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "high",
+        "rationale": "The workload process is replaced. Its memory goes with it."
+      },
+      "explanation": "step 3, \"Redeploy container\", destroys it. No step captures it first. The workload process is replaced. Its memory goes with it.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "running_processes",
+      "name": "Running process list",
+      "tier": "process_state",
+      "priority": "required",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "high",
+        "rationale": "Nothing from the previous container is still running."
+      },
+      "explanation": "step 3, \"Redeploy container\", destroys it. No step captures it first. Nothing from the previous container is still running.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "loaded_modules",
+      "name": "Loaded modules",
+      "tier": "process_state",
+      "priority": "recommended",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "high",
+        "rationale": "Nothing from the previous container is still running."
+      },
+      "explanation": "step 3, \"Redeploy container\", destroys it. No step captures it first. Nothing from the previous container is still running.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "open_file_handles",
+      "name": "Open handles and deleted-but-open files",
+      "tier": "process_state",
+      "priority": "recommended",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "high",
+        "rationale": "Nothing from the previous container is still running."
+      },
+      "explanation": "step 3, \"Redeploy container\", destroys it. No step captures it first. Nothing from the previous container is still running.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "service_runtime_state",
+      "name": "Service runtime state",
+      "tier": "process_state",
+      "priority": "recommended",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "high",
+        "rationale": "Nothing from the previous container is still running."
+      },
+      "explanation": "step 3, \"Redeploy container\", destroys it. No step captures it first. Nothing from the previous container is still running.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "active_connections",
+      "name": "Established network connections",
+      "tier": "network_state",
+      "priority": "required",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "high",
+        "rationale": "The network namespace is torn down with the container."
+      },
+      "explanation": "step 3, \"Redeploy container\", destroys it. No step captures it first. The network namespace is torn down with the container.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "listening_sockets",
+      "name": "Listening sockets",
+      "tier": "network_state",
+      "priority": "recommended",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "high",
+        "rationale": "The network namespace is torn down with the container."
+      },
+      "explanation": "step 3, \"Redeploy container\", destroys it. No step captures it first. The network namespace is torn down with the container.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "interactive_sessions",
+      "name": "Logged-on sessions",
+      "tier": "session_state",
+      "priority": "required",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "high",
+        "rationale": "In-workload sessions end with the workload."
+      },
+      "explanation": "step 3, \"Redeploy container\", destroys it. No step captures it first. In-workload sessions end with the workload.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "active_access_tokens",
+      "name": "Live access and refresh tokens",
+      "tier": "session_state",
+      "priority": "required",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "high",
+        "rationale": "In-workload sessions end with the workload."
+      },
+      "explanation": "step 3, \"Redeploy container\", destroys it. No step captures it first. In-workload sessions end with the workload.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "app_session_store",
+      "name": "Application session store",
+      "tier": "session_state",
+      "priority": "recommended",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "high",
+        "rationale": "In-workload sessions end with the workload."
+      },
+      "explanation": "step 3, \"Redeploy container\", destroys it. No step captures it first. In-workload sessions end with the workload.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "container_writable_layer",
+      "name": "Container writable layer",
+      "tier": "runtime_artifact",
+      "priority": "required",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "high",
+        "rationale": "The copy-on-write layer is discarded. The image is immutable, so everything the attacker wrote lived in that layer and nowhere else — this single step is the whole forensic cost of a redeploy."
+      },
+      "explanation": "step 3, \"Redeploy container\", destroys it. No step captures it first. The copy-on-write layer is discarded. The image is immutable, so everything the attacker wrote lived in that layer and nowhere else — this single step is the whole forensic cost of a redeploy.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "ephemeral_volume_contents",
+      "name": "Ephemeral volume contents",
+      "tier": "runtime_artifact",
+      "priority": "recommended",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "high",
+        "rationale": "Volumes bound to the workload lifetime are removed with it."
+      },
+      "explanation": "step 3, \"Redeploy container\", destroys it. No step captures it first. Volumes bound to the workload lifetime are removed with it.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "shared_memory_segments",
+      "name": "Shared memory and tmpfs",
+      "tier": "runtime_artifact",
+      "priority": "recommended",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "medium",
+        "rationale": "This action replaces the host. Anything held on it and not explicitly listed above should be assumed gone."
+      },
+      "explanation": "step 3, \"Redeploy container\", destroys it. No step captures it first. This action replaces the host. Anything held on it and not explicitly listed above should be assumed gone.",
+      "confidence": "medium",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "temp_directory_contents",
+      "name": "Temporary directory contents",
+      "tier": "temporary_state",
+      "priority": "recommended",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "high",
+        "rationale": "Temporary paths inside the container are part of the discarded layer."
+      },
+      "explanation": "step 3, \"Redeploy container\", destroys it. No step captures it first. Temporary paths inside the container are part of the discarded layer.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "crash_dumps",
+      "name": "Crash dumps and core files",
+      "tier": "temporary_state",
+      "priority": "optional",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "high",
+        "rationale": "Temporary paths inside the container are part of the discarded layer."
+      },
+      "explanation": "step 3, \"Redeploy container\", destroys it. No step captures it first. Temporary paths inside the container are part of the discarded layer.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "staged_tooling",
+      "name": "Staged tooling in writable paths",
+      "tier": "temporary_state",
+      "priority": "required",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "high",
+        "rationale": "Temporary paths inside the container are part of the discarded layer."
+      },
+      "explanation": "step 3, \"Redeploy container\", destroys it. No step captures it first. Temporary paths inside the container are part of the discarded layer.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "file_timestamps",
+      "name": "Filesystem timestamps",
+      "tier": "disk_artifact",
+      "priority": "recommended",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "medium",
+        "rationale": "This action replaces the host. Anything held on it and not explicitly listed above should be assumed gone."
+      },
+      "explanation": "step 3, \"Redeploy container\", destroys it. No step captures it first. This action replaces the host. Anything held on it and not explicitly listed above should be assumed gone.",
+      "confidence": "medium",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "installed_package_state",
+      "name": "Installed package and version state",
+      "tier": "disk_artifact",
+      "priority": "required",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "medium",
+        "rationale": "This action replaces the host. Anything held on it and not explicitly listed above should be assumed gone."
+      },
+      "explanation": "step 3, \"Redeploy container\", destroys it. No step captures it first. This action replaces the host. Anything held on it and not explicitly listed above should be assumed gone.",
+      "confidence": "medium",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "persistence_mechanisms",
+      "name": "Persistence mechanisms",
+      "tier": "disk_artifact",
+      "priority": "required",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "medium",
+        "rationale": "This action replaces the host. Anything held on it and not explicitly listed above should be assumed gone."
+      },
+      "explanation": "step 3, \"Redeploy container\", destroys it. No step captures it first. This action replaces the host. Anything held on it and not explicitly listed above should be assumed gone.",
+      "confidence": "medium",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "service_configuration",
+      "name": "Service configuration on disk",
+      "tier": "disk_artifact",
+      "priority": "recommended",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "medium",
+        "rationale": "This action replaces the host. Anything held on it and not explicitly listed above should be assumed gone."
+      },
+      "explanation": "step 3, \"Redeploy container\", destroys it. No step captures it first. This action replaces the host. Anything held on it and not explicitly listed above should be assumed gone.",
+      "confidence": "medium",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "local_event_logs",
+      "name": "Local event and system logs",
+      "tier": "long_term_record",
+      "priority": "required",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "high",
+        "rationale": "Logs written inside the container are in the writable layer."
+      },
+      "explanation": "step 3, \"Redeploy container\", destroys it. No step captures it first. Logs written inside the container are in the writable layer.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "centralised_logs",
+      "name": "Centralised log copies",
+      "tier": "long_term_record",
+      "priority": "required",
+      "outcome": "preserved",
+      "captured_at_index": 0,
+      "first_harm": null,
+      "explanation": "Captured at step 1 by \"Export off-host records\", before anything in this plan touches it.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "edr_telemetry",
+      "name": "Endpoint telemetry",
+      "tier": "long_term_record",
+      "priority": "recommended",
+      "outcome": "preserved",
+      "captured_at_index": 0,
+      "first_harm": null,
+      "explanation": "Captured at step 1 by \"Export off-host records\", before anything in this plan touches it.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "cloud_control_plane_logs",
+      "name": "Cloud control-plane audit log",
+      "tier": "long_term_record",
+      "priority": "required",
+      "outcome": "preserved",
+      "captured_at_index": 1,
+      "first_harm": null,
+      "explanation": "Captured at step 2 by \"Export cloud audit records\", before anything in this plan touches it.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    }
+  ],
+  "recommended_outcomes": [
+    {
+      "artifact_id": "process_memory_target",
+      "name": "Target process memory",
+      "tier": "volatile_memory",
+      "priority": "required",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "high",
+        "rationale": "The workload process is replaced. Its memory goes with it."
+      },
+      "explanation": "step 1, \"Redeploy container\", destroys it. No step captures it first. The workload process is replaced. Its memory goes with it.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "injected_code_regions",
+      "name": "Unbacked executable memory",
+      "tier": "volatile_memory",
+      "priority": "required",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "high",
+        "rationale": "The workload process is replaced. Its memory goes with it."
+      },
+      "explanation": "step 1, \"Redeploy container\", destroys it. No step captures it first. The workload process is replaced. Its memory goes with it.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "decrypted_key_material",
+      "name": "Decrypted key material in memory",
+      "tier": "volatile_memory",
+      "priority": "recommended",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "high",
+        "rationale": "The workload process is replaced. Its memory goes with it."
+      },
+      "explanation": "step 1, \"Redeploy container\", destroys it. No step captures it first. The workload process is replaced. Its memory goes with it.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "running_processes",
+      "name": "Running process list",
+      "tier": "process_state",
+      "priority": "required",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "high",
+        "rationale": "Nothing from the previous container is still running."
+      },
+      "explanation": "step 1, \"Redeploy container\", destroys it. No step captures it first. Nothing from the previous container is still running.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "loaded_modules",
+      "name": "Loaded modules",
+      "tier": "process_state",
+      "priority": "recommended",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "high",
+        "rationale": "Nothing from the previous container is still running."
+      },
+      "explanation": "step 1, \"Redeploy container\", destroys it. No step captures it first. Nothing from the previous container is still running.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "open_file_handles",
+      "name": "Open handles and deleted-but-open files",
+      "tier": "process_state",
+      "priority": "recommended",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "high",
+        "rationale": "Nothing from the previous container is still running."
+      },
+      "explanation": "step 1, \"Redeploy container\", destroys it. No step captures it first. Nothing from the previous container is still running.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "service_runtime_state",
+      "name": "Service runtime state",
+      "tier": "process_state",
+      "priority": "recommended",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "high",
+        "rationale": "Nothing from the previous container is still running."
+      },
+      "explanation": "step 1, \"Redeploy container\", destroys it. No step captures it first. Nothing from the previous container is still running.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "active_connections",
+      "name": "Established network connections",
+      "tier": "network_state",
+      "priority": "required",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "high",
+        "rationale": "The network namespace is torn down with the container."
+      },
+      "explanation": "step 1, \"Redeploy container\", destroys it. No step captures it first. The network namespace is torn down with the container.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "listening_sockets",
+      "name": "Listening sockets",
+      "tier": "network_state",
+      "priority": "recommended",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "high",
+        "rationale": "The network namespace is torn down with the container."
+      },
+      "explanation": "step 1, \"Redeploy container\", destroys it. No step captures it first. The network namespace is torn down with the container.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "interactive_sessions",
+      "name": "Logged-on sessions",
+      "tier": "session_state",
+      "priority": "required",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "high",
+        "rationale": "In-workload sessions end with the workload."
+      },
+      "explanation": "step 1, \"Redeploy container\", destroys it. No step captures it first. In-workload sessions end with the workload.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "active_access_tokens",
+      "name": "Live access and refresh tokens",
+      "tier": "session_state",
+      "priority": "required",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "high",
+        "rationale": "In-workload sessions end with the workload."
+      },
+      "explanation": "step 1, \"Redeploy container\", destroys it. No step captures it first. In-workload sessions end with the workload.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "app_session_store",
+      "name": "Application session store",
+      "tier": "session_state",
+      "priority": "recommended",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "high",
+        "rationale": "In-workload sessions end with the workload."
+      },
+      "explanation": "step 1, \"Redeploy container\", destroys it. No step captures it first. In-workload sessions end with the workload.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "container_writable_layer",
+      "name": "Container writable layer",
+      "tier": "runtime_artifact",
+      "priority": "required",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "high",
+        "rationale": "The copy-on-write layer is discarded. The image is immutable, so everything the attacker wrote lived in that layer and nowhere else — this single step is the whole forensic cost of a redeploy."
+      },
+      "explanation": "step 1, \"Redeploy container\", destroys it. No step captures it first. The copy-on-write layer is discarded. The image is immutable, so everything the attacker wrote lived in that layer and nowhere else — this single step is the whole forensic cost of a redeploy.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "ephemeral_volume_contents",
+      "name": "Ephemeral volume contents",
+      "tier": "runtime_artifact",
+      "priority": "recommended",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "high",
+        "rationale": "Volumes bound to the workload lifetime are removed with it."
+      },
+      "explanation": "step 1, \"Redeploy container\", destroys it. No step captures it first. Volumes bound to the workload lifetime are removed with it.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "shared_memory_segments",
+      "name": "Shared memory and tmpfs",
+      "tier": "runtime_artifact",
+      "priority": "recommended",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "medium",
+        "rationale": "This action replaces the host. Anything held on it and not explicitly listed above should be assumed gone."
+      },
+      "explanation": "step 1, \"Redeploy container\", destroys it. No step captures it first. This action replaces the host. Anything held on it and not explicitly listed above should be assumed gone.",
+      "confidence": "medium",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "temp_directory_contents",
+      "name": "Temporary directory contents",
+      "tier": "temporary_state",
+      "priority": "recommended",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "high",
+        "rationale": "Temporary paths inside the container are part of the discarded layer."
+      },
+      "explanation": "step 1, \"Redeploy container\", destroys it. No step captures it first. Temporary paths inside the container are part of the discarded layer.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "crash_dumps",
+      "name": "Crash dumps and core files",
+      "tier": "temporary_state",
+      "priority": "optional",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "high",
+        "rationale": "Temporary paths inside the container are part of the discarded layer."
+      },
+      "explanation": "step 1, \"Redeploy container\", destroys it. No step captures it first. Temporary paths inside the container are part of the discarded layer.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "staged_tooling",
+      "name": "Staged tooling in writable paths",
+      "tier": "temporary_state",
+      "priority": "required",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "high",
+        "rationale": "Temporary paths inside the container are part of the discarded layer."
+      },
+      "explanation": "step 1, \"Redeploy container\", destroys it. No step captures it first. Temporary paths inside the container are part of the discarded layer.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "file_timestamps",
+      "name": "Filesystem timestamps",
+      "tier": "disk_artifact",
+      "priority": "recommended",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "medium",
+        "rationale": "This action replaces the host. Anything held on it and not explicitly listed above should be assumed gone."
+      },
+      "explanation": "step 1, \"Redeploy container\", destroys it. No step captures it first. This action replaces the host. Anything held on it and not explicitly listed above should be assumed gone.",
+      "confidence": "medium",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "installed_package_state",
+      "name": "Installed package and version state",
+      "tier": "disk_artifact",
+      "priority": "required",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "medium",
+        "rationale": "This action replaces the host. Anything held on it and not explicitly listed above should be assumed gone."
+      },
+      "explanation": "step 1, \"Redeploy container\", destroys it. No step captures it first. This action replaces the host. Anything held on it and not explicitly listed above should be assumed gone.",
+      "confidence": "medium",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "persistence_mechanisms",
+      "name": "Persistence mechanisms",
+      "tier": "disk_artifact",
+      "priority": "required",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "medium",
+        "rationale": "This action replaces the host. Anything held on it and not explicitly listed above should be assumed gone."
+      },
+      "explanation": "step 1, \"Redeploy container\", destroys it. No step captures it first. This action replaces the host. Anything held on it and not explicitly listed above should be assumed gone.",
+      "confidence": "medium",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "service_configuration",
+      "name": "Service configuration on disk",
+      "tier": "disk_artifact",
+      "priority": "recommended",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "medium",
+        "rationale": "This action replaces the host. Anything held on it and not explicitly listed above should be assumed gone."
+      },
+      "explanation": "step 1, \"Redeploy container\", destroys it. No step captures it first. This action replaces the host. Anything held on it and not explicitly listed above should be assumed gone.",
+      "confidence": "medium",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "local_event_logs",
+      "name": "Local event and system logs",
+      "tier": "long_term_record",
+      "priority": "required",
+      "outcome": "lost",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "action_name": "Redeploy container",
+        "index": 2,
+        "impact": "destroys",
+        "confidence": "high",
+        "rationale": "Logs written inside the container are in the writable layer."
+      },
+      "explanation": "step 1, \"Redeploy container\", destroys it. No step captures it first. Logs written inside the container are in the writable layer.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "centralised_logs",
+      "name": "Centralised log copies",
+      "tier": "long_term_record",
+      "priority": "required",
+      "outcome": "preserved",
+      "captured_at_index": 3,
+      "first_harm": null,
+      "explanation": "Captured at step 4 by \"Export off-host records\", before anything in this plan touches it.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "edr_telemetry",
+      "name": "Endpoint telemetry",
+      "tier": "long_term_record",
+      "priority": "recommended",
+      "outcome": "preserved",
+      "captured_at_index": 3,
+      "first_harm": null,
+      "explanation": "Captured at step 4 by \"Export off-host records\", before anything in this plan touches it.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "cloud_control_plane_logs",
+      "name": "Cloud control-plane audit log",
+      "tier": "long_term_record",
+      "priority": "required",
+      "outcome": "preserved",
+      "captured_at_index": 2,
+      "first_harm": null,
+      "explanation": "Captured at step 3 by \"Export cloud audit records\", before anything in this plan touches it.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    }
+  ],
+  "sequence": {
+    "steps": [
+      {
+        "order": 1,
+        "kind": "remediation",
+        "step_id": "s011",
+        "action_id": "container_redeploy",
+        "name": "Redeploy container",
+        "artifact_ids": [],
+        "estimated_minutes": 8,
+        "offset_minutes": 0,
+        "why_now": "A remediation step. Target process memory, Unbacked executable memory, Decrypted key material in memory and 20 others stop existing here, which is why everything above it had to run first.",
+        "at_risk": [],
+        "enables": null,
+        "lost_after": [
+          "Target process memory",
+          "Unbacked executable memory",
+          "Decrypted key material in memory",
+          "Running process list",
+          "Loaded modules",
+          "Open handles and deleted-but-open files",
+          "Service runtime state",
+          "Established network connections",
+          "Listening sockets",
+          "Logged-on sessions",
+          "Live access and refresh tokens",
+          "Application session store",
+          "Container writable layer",
+          "Ephemeral volume contents",
+          "Shared memory and tmpfs",
+          "Temporary directory contents",
+          "Crash dumps and core files",
+          "Staged tooling in writable paths",
+          "Filesystem timestamps",
+          "Installed package and version state",
+          "Persistence mechanisms",
+          "Service configuration on disk",
+          "Local event and system logs"
+        ],
+        "confidence": "high",
+        "gate": null
+      },
+      {
+        "order": 2,
+        "kind": "remediation",
+        "step_id": "s012",
+        "action_id": "verify_remediation",
+        "name": "Verify remediation",
+        "artifact_ids": [],
+        "estimated_minutes": 10,
+        "offset_minutes": 8,
+        "why_now": "A remediation step. Nothing in the evidence catalogue is lost at this point.",
+        "at_risk": [],
+        "enables": null,
+        "lost_after": [],
+        "confidence": "high",
+        "gate": null
+      },
+      {
+        "order": 3,
+        "kind": "capture",
+        "step_id": "s010",
+        "action_id": "capture_cloud_logs",
+        "name": "Export cloud audit records",
+        "artifact_ids": [
+          "cloud_control_plane_logs"
+        ],
+        "estimated_minutes": 12,
+        "offset_minutes": 18,
+        "why_now": "Nothing in this plan reaches Cloud control-plane audit log, so this capture is not racing anything. It is placed after remediation so it does not spend time on the clock before the fix. Platform retention, not this plan, is what bounds it.",
+        "at_risk": [
+          "Cloud control-plane audit log"
+        ],
+        "enables": null,
+        "lost_after": [],
+        "confidence": "high",
+        "gate": null
+      },
+      {
+        "order": 4,
+        "kind": "capture",
+        "step_id": "s009",
+        "action_id": "capture_offhost_logs",
+        "name": "Export off-host records",
+        "artifact_ids": [
+          "centralised_logs",
+          "edr_telemetry"
+        ],
+        "estimated_minutes": 15,
+        "offset_minutes": 30,
+        "why_now": "Nothing in this plan reaches Centralised log copies and Endpoint telemetry, so this capture is not racing anything. It is placed after remediation so it does not spend time on the clock before the fix. Platform retention, not this plan, is what bounds it.",
+        "at_risk": [
+          "Centralised log copies",
+          "Endpoint telemetry"
+        ],
+        "enables": null,
+        "lost_after": [],
+        "confidence": "high",
+        "gate": null
+      }
+    ],
+    "gates": [],
+    "order": [
+      "s011",
+      "s012",
+      "s010",
+      "s009"
+    ],
+    "matches_plan_order": false
+  },
+  "feasibility": {
+    "status": "feasible",
+    "preservation_minutes": 27,
+    "remediation_minutes": 18,
+    "verification_minutes": 15,
+    "buffer_minutes": 20,
+    "total_minutes": 80,
+    "available_minutes": 480,
+    "slack_minutes": 400,
+    "utilisation": 0.16666666666666666,
+    "unknown_duration_count": 0,
+    "explanation": "1h 20m of work against a 8h window, using 17% of it, leaving 6h 40m. Preservation and remediation both fit with room."
+  },
+  "conflicts": [
+    {
+      "conflict_id": "loss_undocumented",
+      "kind": "undocumented_loss",
+      "severity": "high",
+      "title": "23 artifacts will not survive this plan, and nobody has signed for them",
+      "detail": "Target process memory, Unbacked executable memory, Decrypted key material in memory, Running process list and 19 others. Losing evidence during remediation is frequently the right call. Losing it without a record of who decided and why is the part that becomes a problem six months later, when somebody asks what was known at the time.",
+      "options": [
+        "Record an accepted loss for each artifact, naming the decision owner and the residual risk.",
+        "Reorder so the captures precede the destructive steps.",
+        "Reduce the remediation to steps that do not destroy this evidence, if an equivalent mitigation exists."
+      ],
+      "subject_ids": [
+        "process_memory_target",
+        "injected_code_regions",
+        "decrypted_key_material",
+        "running_processes",
+        "loaded_modules",
+        "open_file_handles",
+        "service_runtime_state",
+        "active_connections",
+        "listening_sockets",
+        "interactive_sessions",
+        "active_access_tokens",
+        "app_session_store",
+        "container_writable_layer",
+        "ephemeral_volume_contents",
+        "shared_memory_segments",
+        "temp_directory_contents",
+        "crash_dumps",
+        "staged_tooling",
+        "file_timestamps",
+        "installed_package_state",
+        "persistence_mechanisms",
+        "service_configuration",
+        "local_event_logs"
+      ],
+      "resolved_by": null
+    },
+    {
+      "conflict_id": "uncaptured_required",
+      "kind": "uncaptured_required",
+      "severity": "high",
+      "title": "11 required artifacts have no capture step in this plan",
+      "detail": "Target process memory, Unbacked executable memory, Running process list, Established network connections and 7 others are marked required, and the plan contains a step that reaches them. Nothing in the plan collects them first. What goes unanswered: Target process memory — What was inside the vulnerable service at the time — deserialised payloads, request buffers, loaded webshell code? Unbacked executable memory — Is code running on this host that was never written to disk, and therefore leaves no file for anyone to find afterwards? Running process list — What was actually running, under whose account, launched by what? The parent chain is usually the first thing an investigation asks for.",
+      "options": [
+        "Add the corresponding capture steps before the steps that reach them.",
+        "Downgrade any artifact the investigation does not in fact need, so the plan stops claiming to require it.",
+        "Record each loss as a decision, with a named owner and the residual risk."
+      ],
+      "subject_ids": [
+        "process_memory_target",
+        "injected_code_regions",
+        "running_processes",
+        "active_connections",
+        "interactive_sessions",
+        "active_access_tokens",
+        "container_writable_layer",
+        "staged_tooling",
+        "installed_package_state",
+        "persistence_mechanisms",
+        "local_event_logs"
+      ],
+      "resolved_by": null
+    }
+  ],
+  "unknowns": [],
+  "summary": {
+    "asset_name": "checkout-api-7d9f4b8c6-x2kqp",
+    "asset_type": "kubernetes_workload",
+    "tier_label": "Incident-driven — same shift",
+    "deadline_label": "Same-shift containment",
+    "step_count": 4,
+    "capture_step_count": 2,
+    "harmful_step_count": 1,
+    "artifact_count": 26,
+    "outcomes": {
+      "preserved": 3,
+      "degraded": 0,
+      "lost": 23,
+      "retained": 0,
+      "indeterminate": 0,
+      "accepted_loss": 0
+    },
+    "conflict_count": 2,
+    "unknown_impact_count": 0,
+    "accepted_loss_count": 0,
+    "override_count": 0,
+    "feasibility": "feasible"
+  },
+  "assumptions": [
+    "Steps run one after another on a single worker. Two captures that could genuinely run in parallel are counted twice against the clock, so the total is conservative.",
+    "The evidence catalogue is scoped to kubernetes workload. Artifacts that do not apply to this asset type are not offered and are not counted as lost.",
+    "Durations are order-of-magnitude figures from the catalogue, adjusted by any per-step override in this plan. They are not measurements of your environment.",
+    "Verification (15 min) and contingency buffer (20 min) are counted against the window as stated in the plan.",
+    "The remediation tier and the deadline are inputs. TOURNIQUET does not assess how urgent this vulnerability is and cannot tell you whether the tier is right."
+  ],
+  "limitations": [
+    "TOURNIQUET plans an order. It does not acquire evidence, does not execute remediation, and has no connection to any system.",
+    "The action-to-evidence mappings are a synthetic library written for this tool. They describe how these platforms generally behave; they are not vendor statements and they are not tested against your build.",
+    "Confidence is declared per mapping and propagated. It is not derived from any corpus, and \"high\" means \"follows from how the platform works\", not \"measured\".",
+    "An artifact reported as retained is retained under the plan as analysed. Anything not in the plan — a colleague restarting the service, an autoscaler replacing the node — is outside what this can see.",
+    "Timestamps, package state and local logs are attacker-modifiable. Preserving them preserves what is there, which is not the same as preserving the truth.",
+    "The tool cannot tell you whether an investigation is warranted. It tells you what a given remediation would cost you if one turned out to be."
+  ]
+}

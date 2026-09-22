@@ -1,0 +1,3021 @@
+{
+  "headline": "The plan fits the 19h 10m window with 17h 33m to spare. 1 artifact will not survive it, and 1 artifact has an outcome that cannot be determined from the plan as written. Resequencing the same steps — same remediation, different order — would save 1 of them.",
+  "analysis_version": "tourniquet/1",
+  "analysed_at": "2026-09-22T12:00:00Z",
+  "plan": {
+    "plan_id": "PLN-2314",
+    "name": "CORP-IDP — service principal credential disclosed in a public repository",
+    "asset": {
+      "asset_id": "CORP-IDP-SP-0092",
+      "name": "sp-reporting-exporter (tenant: corp)",
+      "type": "saas_identity",
+      "environment": "Production",
+      "owner": "Identity Engineering",
+      "description": "Service principal used by the reporting exporter. Holds read access across three data sources and a directory read role.",
+      "notes": "The secret was committed to a public repository and was reachable for an unknown period."
+    },
+    "vulnerability": {
+      "reference": "VULN-2026-0461 (synthetic)",
+      "title": "Disclosed service principal secret",
+      "summary": "A client secret for the reporting exporter was committed to a public repository. Sign-ins for the principal appear from a network with no business relationship.",
+      "suspected_compromise": true,
+      "notes": null
+    },
+    "tier": {
+      "label": "Critical — 24 hour",
+      "source": "Identity standard, credential disclosure",
+      "window_hours": 24,
+      "external": true,
+      "notes": null
+    },
+    "deadline": {
+      "issued_at": "2026-09-22T02:10:00Z",
+      "due_at": "2026-09-23T02:10:00Z",
+      "plan_start": "2026-09-22T07:00:00Z",
+      "label": "24-hour credential response"
+    },
+    "steps": [
+      {
+        "step_id": "s013",
+        "action_id": "capture_identity_logs",
+        "override_minutes": null,
+        "note": null
+      },
+      {
+        "step_id": "s014",
+        "action_id": "token_revoke",
+        "override_minutes": null,
+        "note": null
+      },
+      {
+        "step_id": "s015",
+        "action_id": "credential_rotate",
+        "override_minutes": null,
+        "note": null
+      },
+      {
+        "step_id": "s016",
+        "action_id": "disable_account",
+        "override_minutes": null,
+        "note": null
+      },
+      {
+        "step_id": "s017",
+        "action_id": "capture_token_inventory",
+        "override_minutes": null,
+        "note": "Requested by the investigation lead."
+      },
+      {
+        "step_id": "s018",
+        "action_id": "verify_remediation",
+        "override_minutes": null,
+        "note": null
+      }
+    ],
+    "evidence": [
+      {
+        "artifact_id": "active_access_tokens",
+        "priority": "required",
+        "included": true,
+        "override_minutes": null
+      },
+      {
+        "artifact_id": "identity_signin_logs",
+        "priority": "required",
+        "included": true,
+        "override_minutes": null
+      },
+      {
+        "artifact_id": "identity_audit_logs",
+        "priority": "required",
+        "included": true,
+        "override_minutes": null
+      },
+      {
+        "artifact_id": "app_session_store",
+        "priority": "recommended",
+        "included": true,
+        "override_minutes": null
+      },
+      {
+        "artifact_id": "cloud_control_plane_logs",
+        "priority": "required",
+        "included": true,
+        "override_minutes": null
+      }
+    ],
+    "accepted_losses": [],
+    "overrides": [],
+    "contingency_buffer_minutes": 30,
+    "verification_minutes": 20,
+    "notes": "Rotation and revocation are not in dispute. The question is what can still be learned about the blast radius afterwards."
+  },
+  "artifacts": [
+    {
+      "artifact_id": "running_processes",
+      "name": "Running process list",
+      "tier": "process_state",
+      "description": "Processes with command lines, parents, owning users and start times, as a point-in-time list.",
+      "applies_to": "all",
+      "collection": {
+        "label": "Process enumeration to file",
+        "estimated_minutes": 3,
+        "requires_live_host": true,
+        "observer_effect": "The collection tool appears in its own output.",
+        "note": null
+      },
+      "default_priority": "required",
+      "answers": "What was actually running, under whose account, launched by what? The parent chain is usually the first thing an investigation asks for.",
+      "tags": [
+        "process",
+        "host_state"
+      ],
+      "confidence": "high",
+      "notes": null
+    },
+    {
+      "artifact_id": "service_runtime_state",
+      "name": "Service runtime state",
+      "tier": "process_state",
+      "description": "The running configuration, uptime, worker set and in-memory state of the affected service, as distinct from its configuration on disk.",
+      "applies_to": "all",
+      "collection": {
+        "label": "Service status and runtime configuration dump",
+        "estimated_minutes": 2,
+        "requires_live_host": true,
+        "observer_effect": null,
+        "note": null
+      },
+      "default_priority": "recommended",
+      "answers": "Was the service running the configuration that is on disk, or something that was changed at runtime and never written down?",
+      "tags": [
+        "process",
+        "service",
+        "host_state"
+      ],
+      "confidence": "high",
+      "notes": null
+    },
+    {
+      "artifact_id": "active_connections",
+      "name": "Established network connections",
+      "tier": "network_state",
+      "description": "The socket table: established connections with remote addresses, ports and owning processes.",
+      "applies_to": "all",
+      "collection": {
+        "label": "Socket table enumeration",
+        "estimated_minutes": 2,
+        "requires_live_host": true,
+        "observer_effect": null,
+        "note": null
+      },
+      "default_priority": "required",
+      "answers": "Where was this host talking to, right now, and which process owned the conversation? A closed connection leaves no local record of itself.",
+      "tags": [
+        "network",
+        "host_state"
+      ],
+      "confidence": "high",
+      "notes": null
+    },
+    {
+      "artifact_id": "listening_sockets",
+      "name": "Listening sockets",
+      "tier": "network_state",
+      "description": "Bound ports and the processes listening on them.",
+      "applies_to": "all",
+      "collection": {
+        "label": "Listener enumeration",
+        "estimated_minutes": 2,
+        "requires_live_host": true,
+        "observer_effect": null,
+        "note": null
+      },
+      "default_priority": "recommended",
+      "answers": "Was anything listening that should not have been — a backdoor port, an unexpected bind?",
+      "tags": [
+        "network",
+        "host_state"
+      ],
+      "confidence": "high",
+      "notes": null
+    },
+    {
+      "artifact_id": "interactive_sessions",
+      "name": "Logged-on sessions",
+      "tier": "session_state",
+      "description": "Interactive and remote sessions currently established, with their origin.",
+      "applies_to": "all",
+      "collection": {
+        "label": "Session enumeration",
+        "estimated_minutes": 2,
+        "requires_live_host": true,
+        "observer_effect": null,
+        "note": null
+      },
+      "default_priority": "required",
+      "answers": "Who is logged in right now, from where, and since when?",
+      "tags": [
+        "session",
+        "host_state"
+      ],
+      "confidence": "high",
+      "notes": null
+    },
+    {
+      "artifact_id": "active_access_tokens",
+      "name": "Live access and refresh tokens",
+      "tier": "session_state",
+      "description": "Tokens currently valid for the affected principal, with their scopes, audiences and issue times.",
+      "applies_to": [
+        "saas_identity",
+        "cloud_vm",
+        "application_server",
+        "kubernetes_workload"
+      ],
+      "collection": {
+        "label": "Token inventory from the issuer",
+        "estimated_minutes": 6,
+        "requires_live_host": false,
+        "observer_effect": null,
+        "note": "Read from the identity provider rather than from the host."
+      },
+      "default_priority": "required",
+      "answers": "What could the compromised principal still do, and for how long? Scope and expiry are the blast radius.",
+      "tags": [
+        "session",
+        "credential",
+        "identity"
+      ],
+      "confidence": "medium",
+      "notes": "What a provider exposes about live tokens varies; some list sessions rather than tokens, and refresh-token lineage is often not visible at all."
+    },
+    {
+      "artifact_id": "app_session_store",
+      "name": "Application session store",
+      "tier": "session_state",
+      "description": "Server-side sessions held by the application — in memory, in a cache, or in a session table.",
+      "applies_to": [
+        "application_server",
+        "container",
+        "kubernetes_workload",
+        "saas_identity"
+      ],
+      "collection": {
+        "label": "Session store export",
+        "estimated_minutes": 10,
+        "requires_live_host": true,
+        "observer_effect": null,
+        "note": null
+      },
+      "default_priority": "recommended",
+      "answers": "Which application sessions existed, and did any of them belong to an account that should not have had one?",
+      "tags": [
+        "session"
+      ],
+      "confidence": "medium",
+      "notes": "Where the store lives is application-specific; an in-process store does not survive a restart."
+    },
+    {
+      "artifact_id": "centralised_logs",
+      "name": "Centralised log copies",
+      "tier": "long_term_record",
+      "description": "The same events as held off the host by the logging platform.",
+      "applies_to": "all",
+      "collection": {
+        "label": "Query and export from the log platform",
+        "estimated_minutes": 10,
+        "requires_live_host": false,
+        "observer_effect": null,
+        "note": "Held off the host, so nothing done to the host destroys them."
+      },
+      "default_priority": "recommended",
+      "answers": "What survived off the host? Usually the only copy an attacker with host access could not edit.",
+      "tags": [
+        "log",
+        "offhost"
+      ],
+      "confidence": "high",
+      "notes": "Bounded by the platform retention window, which may be shorter than the incident."
+    },
+    {
+      "artifact_id": "cloud_control_plane_logs",
+      "name": "Cloud control-plane audit log",
+      "tier": "long_term_record",
+      "description": "API calls against the cloud account — instance, role, key and network operations.",
+      "applies_to": [
+        "cloud_vm",
+        "container",
+        "kubernetes_workload",
+        "saas_identity"
+      ],
+      "collection": {
+        "label": "Export from the cloud audit service",
+        "estimated_minutes": 12,
+        "requires_live_host": false,
+        "observer_effect": null,
+        "note": "Recorded by the provider, not by the workload. Terminating the workload does not touch it."
+      },
+      "default_priority": "required",
+      "answers": "What did the compromised identity do to the account itself? The one record that survives the instance being destroyed.",
+      "tags": [
+        "log",
+        "offhost",
+        "cloud"
+      ],
+      "confidence": "high",
+      "notes": null
+    },
+    {
+      "artifact_id": "identity_signin_logs",
+      "name": "Identity sign-in logs",
+      "tier": "long_term_record",
+      "description": "Authentication events for the affected principal, with source, device and outcome.",
+      "applies_to": [
+        "saas_identity",
+        "cloud_vm",
+        "windows_server",
+        "application_server"
+      ],
+      "collection": {
+        "label": "Export from the identity provider",
+        "estimated_minutes": 10,
+        "requires_live_host": false,
+        "observer_effect": null,
+        "note": null
+      },
+      "default_priority": "required",
+      "answers": "Who signed in as this principal, from where, and did it succeed?",
+      "tags": [
+        "log",
+        "offhost",
+        "identity"
+      ],
+      "confidence": "high",
+      "notes": null
+    },
+    {
+      "artifact_id": "identity_audit_logs",
+      "name": "Identity directory audit log",
+      "tier": "long_term_record",
+      "description": "Changes to the directory — consents granted, credentials added, roles assigned, applications registered.",
+      "applies_to": [
+        "saas_identity"
+      ],
+      "collection": {
+        "label": "Export from the identity provider",
+        "estimated_minutes": 10,
+        "requires_live_host": false,
+        "observer_effect": null,
+        "note": null
+      },
+      "default_priority": "required",
+      "answers": "Did they leave themselves a way back in that a password reset will not touch — an added credential, a consented application, a new role?",
+      "tags": [
+        "log",
+        "offhost",
+        "identity",
+        "persistence"
+      ],
+      "confidence": "high",
+      "notes": null
+    }
+  ],
+  "actions": [
+    {
+      "action_id": "capture_process_state",
+      "name": "Snapshot running state",
+      "category": "capture",
+      "description": "Process list, loaded modules, open handles and service runtime configuration.",
+      "estimated_minutes": 5,
+      "destructive_level": "none",
+      "reversible": true,
+      "applies_to": "all",
+      "effects": [],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "A capture reads. It does not remediate anything and destroys nothing."
+      },
+      "captures": [
+        "running_processes",
+        "loaded_modules",
+        "open_file_handles",
+        "service_runtime_state"
+      ],
+      "prerequisites": [],
+      "confidence": "high",
+      "reference": null,
+      "unknown_impact": false,
+      "notes": "Cheap, fast, and the step most often skipped because it feels redundant next to a memory image. It is not: it is readable immediately."
+    },
+    {
+      "action_id": "capture_network_state",
+      "name": "Snapshot network state",
+      "category": "capture",
+      "description": "Socket table, listeners, neighbour cache and resolver cache.",
+      "estimated_minutes": 4,
+      "destructive_level": "none",
+      "reversible": true,
+      "applies_to": "all",
+      "effects": [],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "A capture reads. It does not remediate anything and destroys nothing."
+      },
+      "captures": [
+        "active_connections",
+        "listening_sockets",
+        "arp_neighbour_cache",
+        "dns_resolver_cache"
+      ],
+      "prerequisites": [],
+      "confidence": "high",
+      "reference": null,
+      "unknown_impact": false,
+      "notes": null
+    },
+    {
+      "action_id": "capture_sessions",
+      "name": "Enumerate sessions and tickets",
+      "category": "capture",
+      "description": "Logged-on sessions, plus the cached Kerberos tickets where the platform has them. Applies everywhere something can be logged in; the ticket cache is host-only and is filtered out where it does not apply.",
+      "estimated_minutes": 4,
+      "destructive_level": "none",
+      "reversible": true,
+      "applies_to": "all",
+      "effects": [],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "A capture reads. It does not remediate anything and destroys nothing."
+      },
+      "captures": [
+        "interactive_sessions",
+        "kerberos_tickets"
+      ],
+      "prerequisites": [],
+      "confidence": "high",
+      "reference": null,
+      "unknown_impact": false,
+      "notes": null
+    },
+    {
+      "action_id": "capture_token_inventory",
+      "name": "Inventory live tokens",
+      "category": "capture",
+      "description": "Record the tokens currently valid for the affected principal, with scopes and expiry, from the identity provider.",
+      "estimated_minutes": 6,
+      "destructive_level": "none",
+      "reversible": true,
+      "applies_to": [
+        "saas_identity",
+        "cloud_vm",
+        "application_server",
+        "kubernetes_workload"
+      ],
+      "effects": [],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "A capture reads. It does not remediate anything and destroys nothing."
+      },
+      "captures": [
+        "active_access_tokens"
+      ],
+      "prerequisites": [],
+      "confidence": "medium",
+      "reference": null,
+      "unknown_impact": false,
+      "notes": "What a provider will tell you about live tokens varies. Some expose sessions rather than tokens, and refresh-token lineage is frequently not exposed at all."
+    },
+    {
+      "action_id": "capture_app_sessions",
+      "name": "Export application session store",
+      "category": "capture",
+      "description": "Export server-side application sessions before anything restarts the application.",
+      "estimated_minutes": 10,
+      "destructive_level": "none",
+      "reversible": true,
+      "applies_to": [
+        "application_server",
+        "container",
+        "kubernetes_workload",
+        "saas_identity"
+      ],
+      "effects": [],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "A capture reads. It does not remediate anything and destroys nothing."
+      },
+      "captures": [
+        "app_session_store"
+      ],
+      "prerequisites": [],
+      "confidence": "medium",
+      "reference": null,
+      "unknown_impact": false,
+      "notes": null
+    },
+    {
+      "action_id": "capture_offhost_logs",
+      "name": "Export off-host records",
+      "category": "capture",
+      "description": "Pull the centralised log copies and endpoint telemetry for the affected window.",
+      "estimated_minutes": 15,
+      "destructive_level": "none",
+      "reversible": true,
+      "applies_to": "all",
+      "effects": [],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "A capture reads. It does not remediate anything and destroys nothing."
+      },
+      "captures": [
+        "centralised_logs",
+        "edr_telemetry"
+      ],
+      "prerequisites": [],
+      "confidence": "high",
+      "reference": null,
+      "unknown_impact": false,
+      "notes": "These records are off the host, so nothing done to the host destroys them. They can usually wait — the reason to do them early is platform retention, not remediation."
+    },
+    {
+      "action_id": "capture_cloud_logs",
+      "name": "Export cloud audit records",
+      "category": "capture",
+      "description": "Export control-plane audit records for the account and the affected resources.",
+      "estimated_minutes": 12,
+      "destructive_level": "none",
+      "reversible": true,
+      "applies_to": [
+        "cloud_vm",
+        "container",
+        "kubernetes_workload",
+        "saas_identity"
+      ],
+      "effects": [],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "A capture reads. It does not remediate anything and destroys nothing."
+      },
+      "captures": [
+        "cloud_control_plane_logs"
+      ],
+      "prerequisites": [],
+      "confidence": "high",
+      "reference": null,
+      "unknown_impact": false,
+      "notes": null
+    },
+    {
+      "action_id": "capture_identity_logs",
+      "name": "Export identity records",
+      "category": "capture",
+      "description": "Export sign-in history and directory audit records for the affected principal.",
+      "estimated_minutes": 14,
+      "destructive_level": "none",
+      "reversible": true,
+      "applies_to": [
+        "saas_identity",
+        "cloud_vm",
+        "windows_server",
+        "application_server"
+      ],
+      "effects": [],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "A capture reads. It does not remediate anything and destroys nothing."
+      },
+      "captures": [
+        "identity_signin_logs",
+        "identity_audit_logs"
+      ],
+      "prerequisites": [],
+      "confidence": "high",
+      "reference": null,
+      "unknown_impact": false,
+      "notes": null
+    },
+    {
+      "action_id": "service_restart",
+      "name": "Restart affected service",
+      "category": "service",
+      "description": "Stop and start the affected service. The most common remediation step, and the one most often assumed to be harmless.",
+      "estimated_minutes": 4,
+      "destructive_level": "moderate",
+      "reversible": true,
+      "applies_to": "all",
+      "effects": [
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "process_memory_target"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "The process whose memory you wanted is replaced by a fresh one. Its address space is returned to the operating system."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "service_runtime_state"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "The running configuration is rebuilt from disk. Anything set at runtime and never written down is gone."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "decrypted_key_material"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "Secrets held by the service exist only while it is running."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "injected_code_regions"
+          },
+          "impact": "destroys",
+          "confidence": "medium",
+          "rationale": "Code injected into the restarted service goes with it. Injection into any other process on the host is untouched, so this is a partial loss that the plan cannot narrow further."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "open_file_handles"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "A file the attacker unlinked but left open by this service becomes unrecoverable the moment the process ends."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "active_connections"
+          },
+          "impact": "modifies",
+          "confidence": "high",
+          "rationale": "Connections owned by the service are torn down. The rest of the socket table survives, so what you collect afterwards is a partial picture that looks like a complete one."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "listening_sockets"
+          },
+          "impact": "modifies",
+          "confidence": "high",
+          "rationale": "The service unbinds and rebinds. An unexpected extra listener may not come back."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "running_processes"
+          },
+          "impact": "modifies",
+          "confidence": "high",
+          "rationale": "Process identifiers and start times for the service change, which breaks the parent chain from before the restart."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "shared_memory_segments"
+          },
+          "impact": "may_invalidate",
+          "confidence": "medium",
+          "rationale": "Segments owned by the service may be released when it exits."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "app_session_store"
+          },
+          "impact": "unknown",
+          "confidence": "unknown",
+          "rationale": "If the session store is held in the application process it is destroyed; if it is an external cache or table it is untouched. Which one this deployment uses is not recorded here."
+        }
+      ],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches."
+      },
+      "captures": [],
+      "prerequisites": [],
+      "confidence": "high",
+      "reference": "Synthetic mapping. Derived from how service managers replace processes.",
+      "unknown_impact": false,
+      "notes": "A restart is frequently treated as a non-event. It is the single cheapest way to destroy the memory of the process you are investigating."
+    },
+    {
+      "action_id": "package_upgrade",
+      "name": "Apply package upgrade",
+      "category": "patch",
+      "description": "Upgrade the vulnerable package through the platform package manager.",
+      "estimated_minutes": 12,
+      "destructive_level": "low",
+      "reversible": true,
+      "applies_to": "all",
+      "effects": [
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "installed_package_state"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "The on-disk state of the vulnerable version is overwritten. This is the record of what you were actually exposed to, and the patch is what removes it — which is why it is captured before rather than after."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "file_timestamps"
+          },
+          "impact": "modifies",
+          "confidence": "high",
+          "rationale": "Every file the upgrade touches gets new times, over the top of the timeline you wanted."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "service_configuration"
+          },
+          "impact": "may_invalidate",
+          "confidence": "medium",
+          "rationale": "Upgrades may replace, merge or back up configuration files. A tampered configuration can be quietly normalised."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "disk_image"
+          },
+          "impact": "may_invalidate",
+          "confidence": "medium",
+          "rationale": "An image taken afterwards is of the patched system, not the exposed one."
+        }
+      ],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches."
+      },
+      "captures": [],
+      "prerequisites": [],
+      "confidence": "high",
+      "reference": "Synthetic mapping.",
+      "unknown_impact": false,
+      "notes": "Modelled as the package operation alone. Most package managers also restart the service; where yours does, add the restart as its own step so its footprint is counted."
+    },
+    {
+      "action_id": "config_change",
+      "name": "Apply configuration change",
+      "category": "config",
+      "description": "Change the service configuration — a mitigation, a hardening step, or disabling the vulnerable feature.",
+      "estimated_minutes": 6,
+      "destructive_level": "low",
+      "reversible": true,
+      "applies_to": "all",
+      "effects": [
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "service_configuration"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "The pre-change configuration is overwritten. If it had been tampered with, the tampering is what you have just deleted."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "file_timestamps"
+          },
+          "impact": "modifies",
+          "confidence": "medium",
+          "rationale": "The configuration files carry new modification times."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "service_runtime_state"
+          },
+          "impact": "modifies",
+          "confidence": "medium",
+          "rationale": "The running configuration diverges from what it was when the incident occurred."
+        }
+      ],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches."
+      },
+      "captures": [],
+      "prerequisites": [],
+      "confidence": "high",
+      "reference": "Synthetic mapping.",
+      "unknown_impact": false,
+      "notes": null
+    },
+    {
+      "action_id": "credential_rotate",
+      "name": "Rotate credential",
+      "category": "credential",
+      "description": "Issue a new secret for the affected service account, key or certificate.",
+      "estimated_minutes": 10,
+      "destructive_level": "low",
+      "reversible": false,
+      "applies_to": "all",
+      "effects": [
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "active_access_tokens"
+          },
+          "impact": "may_invalidate",
+          "confidence": "high",
+          "rationale": "Rotation is the point of the action, but it also ends your ability to observe what the old credential could still reach. Inventory the live tokens first or the blast radius becomes unknowable."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "identity_signin_logs"
+          },
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Sign-in history is a record of the past. Changing a secret does not edit it."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "identity_audit_logs"
+          },
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "The directory audit trail is appended to, not rewritten."
+        }
+      ],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches."
+      },
+      "captures": [],
+      "prerequisites": [],
+      "confidence": "medium",
+      "reference": "Synthetic mapping.",
+      "unknown_impact": false,
+      "notes": "Rotation does not destroy stored records. What it destroys is visibility: after it, nobody can enumerate what the compromised credential was still able to do."
+    },
+    {
+      "action_id": "password_reset",
+      "name": "Reset account password",
+      "category": "credential",
+      "description": "Force a password change on the affected user account.",
+      "estimated_minutes": 5,
+      "destructive_level": "low",
+      "reversible": false,
+      "applies_to": [
+        "saas_identity",
+        "windows_server",
+        "windows_workstation",
+        "linux_server"
+      ],
+      "effects": [
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "interactive_sessions"
+          },
+          "impact": "unknown",
+          "confidence": "unknown",
+          "rationale": "Whether a reset terminates existing sessions depends on the directory and its session policy. Assuming it does is how an account stays compromised through a reset."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "kerberos_tickets"
+          },
+          "impact": "may_invalidate",
+          "confidence": "medium",
+          "rationale": "Tickets already issued remain usable until they expire. A reset prevents new ones; it does not recall old ones."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "identity_audit_logs"
+          },
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "The audit trail records the reset; it does not lose what came before it."
+        }
+      ],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches."
+      },
+      "captures": [],
+      "prerequisites": [],
+      "confidence": "medium",
+      "reference": "Synthetic mapping.",
+      "unknown_impact": false,
+      "notes": null
+    },
+    {
+      "action_id": "token_revoke",
+      "name": "Revoke tokens",
+      "category": "session",
+      "description": "Revoke issued access and refresh tokens for the affected principal.",
+      "estimated_minutes": 4,
+      "destructive_level": "moderate",
+      "reversible": false,
+      "applies_to": [
+        "saas_identity",
+        "cloud_vm",
+        "application_server",
+        "kubernetes_workload"
+      ],
+      "effects": [
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "active_access_tokens"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "The live token inventory is what is being revoked. Afterwards the set of tokens that existed, and the scopes they carried, is no longer observable from the provider."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "app_session_store"
+          },
+          "impact": "modifies",
+          "confidence": "medium",
+          "rationale": "Sessions backed by a revoked token become invalid and may be reaped."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "identity_signin_logs"
+          },
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "History is unaffected."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "identity_audit_logs"
+          },
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "The revocation is appended to the audit trail."
+        }
+      ],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches."
+      },
+      "captures": [],
+      "prerequisites": [],
+      "confidence": "medium",
+      "reference": "Synthetic mapping.",
+      "unknown_impact": false,
+      "notes": "Necessary, and it erases the answer to \"what could they still have done\". Inventory first; the inventory takes six minutes."
+    },
+    {
+      "action_id": "session_terminate",
+      "name": "Terminate active sessions",
+      "category": "session",
+      "description": "Force-close interactive and remote sessions on the affected asset or principal.",
+      "estimated_minutes": 3,
+      "destructive_level": "moderate",
+      "reversible": false,
+      "applies_to": "all",
+      "effects": [
+        {
+          "target": {
+            "kind": "tier",
+            "tier": "session_state"
+          },
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "The sessions are the thing being ended."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "active_connections"
+          },
+          "impact": "modifies",
+          "confidence": "high",
+          "rationale": "Connections carrying those sessions close."
+        },
+        {
+          "target": {
+            "kind": "tag",
+            "tag": "offhost"
+          },
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Off-host records are unaffected."
+        }
+      ],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches."
+      },
+      "captures": [],
+      "prerequisites": [],
+      "confidence": "high",
+      "reference": "Synthetic mapping.",
+      "unknown_impact": false,
+      "notes": null
+    },
+    {
+      "action_id": "disable_account",
+      "name": "Disable account",
+      "category": "credential",
+      "description": "Disable the affected principal in the directory.",
+      "estimated_minutes": 3,
+      "destructive_level": "low",
+      "reversible": true,
+      "applies_to": [
+        "saas_identity",
+        "windows_server",
+        "cloud_vm"
+      ],
+      "effects": [
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "interactive_sessions"
+          },
+          "impact": "unknown",
+          "confidence": "unknown",
+          "rationale": "Whether disabling an account ends sessions already established depends on the provider and on token lifetime. It is frequently assumed and frequently untrue."
+        },
+        {
+          "target": {
+            "kind": "artifact",
+            "artifact_id": "active_access_tokens"
+          },
+          "impact": "may_invalidate",
+          "confidence": "medium",
+          "rationale": "Tokens already issued commonly remain valid until they expire. Disabling the account stops new ones being issued."
+        },
+        {
+          "target": {
+            "kind": "tag",
+            "tag": "identity"
+          },
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Directory records are appended to, not rewritten."
+        }
+      ],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches."
+      },
+      "captures": [],
+      "prerequisites": [],
+      "confidence": "medium",
+      "reference": "Synthetic mapping.",
+      "unknown_impact": false,
+      "notes": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "name": "Verify remediation",
+      "category": "verify",
+      "description": "Confirm the fix is in place and the service is healthy.",
+      "estimated_minutes": 10,
+      "destructive_level": "none",
+      "reversible": true,
+      "applies_to": "all",
+      "effects": [],
+      "default_effect": {
+        "impact": "preserves",
+        "confidence": "high",
+        "rationale": "Verification reads the system. It changes nothing in the evidence catalogue."
+      },
+      "captures": [],
+      "prerequisites": [],
+      "confidence": "high",
+      "reference": null,
+      "unknown_impact": false,
+      "notes": null
+    }
+  ],
+  "impacts": [
+    {
+      "action_id": "capture_identity_logs",
+      "artifact_id": "running_processes",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_identity_logs",
+      "artifact_id": "service_runtime_state",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_identity_logs",
+      "artifact_id": "active_connections",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_identity_logs",
+      "artifact_id": "listening_sockets",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_identity_logs",
+      "artifact_id": "interactive_sessions",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_identity_logs",
+      "artifact_id": "active_access_tokens",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_identity_logs",
+      "artifact_id": "app_session_store",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_identity_logs",
+      "artifact_id": "centralised_logs",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_identity_logs",
+      "artifact_id": "cloud_control_plane_logs",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_identity_logs",
+      "artifact_id": "identity_signin_logs",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_identity_logs",
+      "artifact_id": "identity_audit_logs",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "token_revoke",
+      "artifact_id": "active_access_tokens",
+      "impact": "destroys",
+      "confidence": "high",
+      "rationale": "The live token inventory is what is being revoked. Afterwards the set of tokens that existed, and the scopes they carried, is no longer observable from the provider.",
+      "matched_by": "artifact",
+      "matched_on": null
+    },
+    {
+      "action_id": "token_revoke",
+      "artifact_id": "app_session_store",
+      "impact": "modifies",
+      "confidence": "medium",
+      "rationale": "Sessions backed by a revoked token become invalid and may be reaped.",
+      "matched_by": "artifact",
+      "matched_on": null
+    },
+    {
+      "action_id": "token_revoke",
+      "artifact_id": "running_processes",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "token_revoke",
+      "artifact_id": "service_runtime_state",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "token_revoke",
+      "artifact_id": "active_connections",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "token_revoke",
+      "artifact_id": "listening_sockets",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "token_revoke",
+      "artifact_id": "interactive_sessions",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "token_revoke",
+      "artifact_id": "centralised_logs",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "token_revoke",
+      "artifact_id": "cloud_control_plane_logs",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "token_revoke",
+      "artifact_id": "identity_signin_logs",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "History is unaffected.",
+      "matched_by": "artifact",
+      "matched_on": null
+    },
+    {
+      "action_id": "token_revoke",
+      "artifact_id": "identity_audit_logs",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "The revocation is appended to the audit trail.",
+      "matched_by": "artifact",
+      "matched_on": null
+    },
+    {
+      "action_id": "credential_rotate",
+      "artifact_id": "active_access_tokens",
+      "impact": "may_invalidate",
+      "confidence": "high",
+      "rationale": "Rotation is the point of the action, but it also ends your ability to observe what the old credential could still reach. Inventory the live tokens first or the blast radius becomes unknowable.",
+      "matched_by": "artifact",
+      "matched_on": null
+    },
+    {
+      "action_id": "credential_rotate",
+      "artifact_id": "running_processes",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "credential_rotate",
+      "artifact_id": "service_runtime_state",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "credential_rotate",
+      "artifact_id": "active_connections",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "credential_rotate",
+      "artifact_id": "listening_sockets",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "credential_rotate",
+      "artifact_id": "interactive_sessions",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "credential_rotate",
+      "artifact_id": "app_session_store",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "credential_rotate",
+      "artifact_id": "centralised_logs",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "credential_rotate",
+      "artifact_id": "cloud_control_plane_logs",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "credential_rotate",
+      "artifact_id": "identity_signin_logs",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Sign-in history is a record of the past. Changing a secret does not edit it.",
+      "matched_by": "artifact",
+      "matched_on": null
+    },
+    {
+      "action_id": "credential_rotate",
+      "artifact_id": "identity_audit_logs",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "The directory audit trail is appended to, not rewritten.",
+      "matched_by": "artifact",
+      "matched_on": null
+    },
+    {
+      "action_id": "disable_account",
+      "artifact_id": "active_access_tokens",
+      "impact": "may_invalidate",
+      "confidence": "medium",
+      "rationale": "Tokens already issued commonly remain valid until they expire. Disabling the account stops new ones being issued.",
+      "matched_by": "artifact",
+      "matched_on": null
+    },
+    {
+      "action_id": "disable_account",
+      "artifact_id": "interactive_sessions",
+      "impact": "unknown",
+      "confidence": "unknown",
+      "rationale": "Whether disabling an account ends sessions already established depends on the provider and on token lifetime. It is frequently assumed and frequently untrue.",
+      "matched_by": "artifact",
+      "matched_on": null
+    },
+    {
+      "action_id": "disable_account",
+      "artifact_id": "running_processes",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "disable_account",
+      "artifact_id": "service_runtime_state",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "disable_account",
+      "artifact_id": "active_connections",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "disable_account",
+      "artifact_id": "listening_sockets",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "disable_account",
+      "artifact_id": "app_session_store",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "disable_account",
+      "artifact_id": "centralised_logs",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "disable_account",
+      "artifact_id": "cloud_control_plane_logs",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "disable_account",
+      "artifact_id": "identity_signin_logs",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Directory records are appended to, not rewritten.",
+      "matched_by": "tag",
+      "matched_on": "identity"
+    },
+    {
+      "action_id": "disable_account",
+      "artifact_id": "identity_audit_logs",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Directory records are appended to, not rewritten.",
+      "matched_by": "tag",
+      "matched_on": "identity"
+    },
+    {
+      "action_id": "capture_token_inventory",
+      "artifact_id": "running_processes",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_token_inventory",
+      "artifact_id": "service_runtime_state",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_token_inventory",
+      "artifact_id": "active_connections",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_token_inventory",
+      "artifact_id": "listening_sockets",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_token_inventory",
+      "artifact_id": "interactive_sessions",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_token_inventory",
+      "artifact_id": "active_access_tokens",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_token_inventory",
+      "artifact_id": "app_session_store",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_token_inventory",
+      "artifact_id": "centralised_logs",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_token_inventory",
+      "artifact_id": "cloud_control_plane_logs",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_token_inventory",
+      "artifact_id": "identity_signin_logs",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "capture_token_inventory",
+      "artifact_id": "identity_audit_logs",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "running_processes",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "service_runtime_state",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "active_connections",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "listening_sockets",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "interactive_sessions",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "active_access_tokens",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "app_session_store",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "centralised_logs",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "cloud_control_plane_logs",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "identity_signin_logs",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    },
+    {
+      "action_id": "verify_remediation",
+      "artifact_id": "identity_audit_logs",
+      "impact": "preserves",
+      "confidence": "high",
+      "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+      "matched_by": "action_default",
+      "matched_on": null
+    }
+  ],
+  "footprints": [
+    {
+      "step_id": "s013",
+      "action_id": "capture_identity_logs",
+      "index": 0,
+      "name": "Export identity records",
+      "category": "capture",
+      "destroys": [],
+      "modifies": [],
+      "may_invalidate": [],
+      "preserves": [
+        {
+          "action_id": "capture_identity_logs",
+          "artifact_id": "running_processes",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_identity_logs",
+          "artifact_id": "service_runtime_state",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_identity_logs",
+          "artifact_id": "active_connections",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_identity_logs",
+          "artifact_id": "listening_sockets",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_identity_logs",
+          "artifact_id": "interactive_sessions",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_identity_logs",
+          "artifact_id": "active_access_tokens",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_identity_logs",
+          "artifact_id": "app_session_store",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_identity_logs",
+          "artifact_id": "centralised_logs",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_identity_logs",
+          "artifact_id": "cloud_control_plane_logs",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_identity_logs",
+          "artifact_id": "identity_signin_logs",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_identity_logs",
+          "artifact_id": "identity_audit_logs",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        }
+      ],
+      "unknown": [],
+      "harmful": false,
+      "destructive_level": "none",
+      "estimated_minutes": 14,
+      "reversible": true,
+      "confidence": "high"
+    },
+    {
+      "step_id": "s014",
+      "action_id": "token_revoke",
+      "index": 1,
+      "name": "Revoke tokens",
+      "category": "session",
+      "destroys": [
+        {
+          "action_id": "token_revoke",
+          "artifact_id": "active_access_tokens",
+          "impact": "destroys",
+          "confidence": "high",
+          "rationale": "The live token inventory is what is being revoked. Afterwards the set of tokens that existed, and the scopes they carried, is no longer observable from the provider.",
+          "matched_by": "artifact",
+          "matched_on": null
+        }
+      ],
+      "modifies": [
+        {
+          "action_id": "token_revoke",
+          "artifact_id": "app_session_store",
+          "impact": "modifies",
+          "confidence": "medium",
+          "rationale": "Sessions backed by a revoked token become invalid and may be reaped.",
+          "matched_by": "artifact",
+          "matched_on": null
+        }
+      ],
+      "may_invalidate": [],
+      "preserves": [
+        {
+          "action_id": "token_revoke",
+          "artifact_id": "running_processes",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "token_revoke",
+          "artifact_id": "service_runtime_state",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "token_revoke",
+          "artifact_id": "active_connections",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "token_revoke",
+          "artifact_id": "listening_sockets",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "token_revoke",
+          "artifact_id": "interactive_sessions",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "token_revoke",
+          "artifact_id": "centralised_logs",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "token_revoke",
+          "artifact_id": "cloud_control_plane_logs",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "token_revoke",
+          "artifact_id": "identity_signin_logs",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "History is unaffected.",
+          "matched_by": "artifact",
+          "matched_on": null
+        },
+        {
+          "action_id": "token_revoke",
+          "artifact_id": "identity_audit_logs",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "The revocation is appended to the audit trail.",
+          "matched_by": "artifact",
+          "matched_on": null
+        }
+      ],
+      "unknown": [],
+      "harmful": true,
+      "destructive_level": "moderate",
+      "estimated_minutes": 4,
+      "reversible": false,
+      "confidence": "medium"
+    },
+    {
+      "step_id": "s015",
+      "action_id": "credential_rotate",
+      "index": 2,
+      "name": "Rotate credential",
+      "category": "credential",
+      "destroys": [],
+      "modifies": [],
+      "may_invalidate": [
+        {
+          "action_id": "credential_rotate",
+          "artifact_id": "active_access_tokens",
+          "impact": "may_invalidate",
+          "confidence": "high",
+          "rationale": "Rotation is the point of the action, but it also ends your ability to observe what the old credential could still reach. Inventory the live tokens first or the blast radius becomes unknowable.",
+          "matched_by": "artifact",
+          "matched_on": null
+        }
+      ],
+      "preserves": [
+        {
+          "action_id": "credential_rotate",
+          "artifact_id": "running_processes",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "credential_rotate",
+          "artifact_id": "service_runtime_state",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "credential_rotate",
+          "artifact_id": "active_connections",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "credential_rotate",
+          "artifact_id": "listening_sockets",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "credential_rotate",
+          "artifact_id": "interactive_sessions",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "credential_rotate",
+          "artifact_id": "app_session_store",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "credential_rotate",
+          "artifact_id": "centralised_logs",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "credential_rotate",
+          "artifact_id": "cloud_control_plane_logs",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "credential_rotate",
+          "artifact_id": "identity_signin_logs",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Sign-in history is a record of the past. Changing a secret does not edit it.",
+          "matched_by": "artifact",
+          "matched_on": null
+        },
+        {
+          "action_id": "credential_rotate",
+          "artifact_id": "identity_audit_logs",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "The directory audit trail is appended to, not rewritten.",
+          "matched_by": "artifact",
+          "matched_on": null
+        }
+      ],
+      "unknown": [],
+      "harmful": true,
+      "destructive_level": "low",
+      "estimated_minutes": 10,
+      "reversible": false,
+      "confidence": "high"
+    },
+    {
+      "step_id": "s016",
+      "action_id": "disable_account",
+      "index": 3,
+      "name": "Disable account",
+      "category": "credential",
+      "destroys": [],
+      "modifies": [],
+      "may_invalidate": [
+        {
+          "action_id": "disable_account",
+          "artifact_id": "active_access_tokens",
+          "impact": "may_invalidate",
+          "confidence": "medium",
+          "rationale": "Tokens already issued commonly remain valid until they expire. Disabling the account stops new ones being issued.",
+          "matched_by": "artifact",
+          "matched_on": null
+        }
+      ],
+      "preserves": [
+        {
+          "action_id": "disable_account",
+          "artifact_id": "running_processes",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "disable_account",
+          "artifact_id": "service_runtime_state",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "disable_account",
+          "artifact_id": "active_connections",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "disable_account",
+          "artifact_id": "listening_sockets",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "disable_account",
+          "artifact_id": "app_session_store",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "disable_account",
+          "artifact_id": "centralised_logs",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "disable_account",
+          "artifact_id": "cloud_control_plane_logs",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "This action is bounded to the component named above. Everything else on the host, including all stored state, is outside what it touches.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "disable_account",
+          "artifact_id": "identity_signin_logs",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Directory records are appended to, not rewritten.",
+          "matched_by": "tag",
+          "matched_on": "identity"
+        },
+        {
+          "action_id": "disable_account",
+          "artifact_id": "identity_audit_logs",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Directory records are appended to, not rewritten.",
+          "matched_by": "tag",
+          "matched_on": "identity"
+        }
+      ],
+      "unknown": [
+        {
+          "action_id": "disable_account",
+          "artifact_id": "interactive_sessions",
+          "impact": "unknown",
+          "confidence": "unknown",
+          "rationale": "Whether disabling an account ends sessions already established depends on the provider and on token lifetime. It is frequently assumed and frequently untrue.",
+          "matched_by": "artifact",
+          "matched_on": null
+        }
+      ],
+      "harmful": true,
+      "destructive_level": "low",
+      "estimated_minutes": 3,
+      "reversible": true,
+      "confidence": "unknown"
+    },
+    {
+      "step_id": "s017",
+      "action_id": "capture_token_inventory",
+      "index": 4,
+      "name": "Inventory live tokens",
+      "category": "capture",
+      "destroys": [],
+      "modifies": [],
+      "may_invalidate": [],
+      "preserves": [
+        {
+          "action_id": "capture_token_inventory",
+          "artifact_id": "running_processes",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_token_inventory",
+          "artifact_id": "service_runtime_state",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_token_inventory",
+          "artifact_id": "active_connections",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_token_inventory",
+          "artifact_id": "listening_sockets",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_token_inventory",
+          "artifact_id": "interactive_sessions",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_token_inventory",
+          "artifact_id": "active_access_tokens",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_token_inventory",
+          "artifact_id": "app_session_store",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_token_inventory",
+          "artifact_id": "centralised_logs",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_token_inventory",
+          "artifact_id": "cloud_control_plane_logs",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_token_inventory",
+          "artifact_id": "identity_signin_logs",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "capture_token_inventory",
+          "artifact_id": "identity_audit_logs",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "A capture reads. It does not remediate anything and destroys nothing.",
+          "matched_by": "action_default",
+          "matched_on": null
+        }
+      ],
+      "unknown": [],
+      "harmful": false,
+      "destructive_level": "none",
+      "estimated_minutes": 6,
+      "reversible": true,
+      "confidence": "high"
+    },
+    {
+      "step_id": "s018",
+      "action_id": "verify_remediation",
+      "index": 5,
+      "name": "Verify remediation",
+      "category": "verify",
+      "destroys": [],
+      "modifies": [],
+      "may_invalidate": [],
+      "preserves": [
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "running_processes",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "service_runtime_state",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "active_connections",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "listening_sockets",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "interactive_sessions",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "active_access_tokens",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "app_session_store",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "centralised_logs",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "cloud_control_plane_logs",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "identity_signin_logs",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        },
+        {
+          "action_id": "verify_remediation",
+          "artifact_id": "identity_audit_logs",
+          "impact": "preserves",
+          "confidence": "high",
+          "rationale": "Verification reads the system. It changes nothing in the evidence catalogue.",
+          "matched_by": "action_default",
+          "matched_on": null
+        }
+      ],
+      "unknown": [],
+      "harmful": false,
+      "destructive_level": "none",
+      "estimated_minutes": 10,
+      "reversible": true,
+      "confidence": "high"
+    }
+  ],
+  "outcomes": [
+    {
+      "artifact_id": "running_processes",
+      "name": "Running process list",
+      "tier": "process_state",
+      "priority": "required",
+      "outcome": "retained",
+      "captured_at_index": null,
+      "first_harm": null,
+      "explanation": "No step in this plan captures it, and no step touches it. It stays on the system and can be collected after remediation.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "service_runtime_state",
+      "name": "Service runtime state",
+      "tier": "process_state",
+      "priority": "recommended",
+      "outcome": "retained",
+      "captured_at_index": null,
+      "first_harm": null,
+      "explanation": "No step in this plan captures it, and no step touches it. It stays on the system and can be collected after remediation.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "active_connections",
+      "name": "Established network connections",
+      "tier": "network_state",
+      "priority": "required",
+      "outcome": "retained",
+      "captured_at_index": null,
+      "first_harm": null,
+      "explanation": "No step in this plan captures it, and no step touches it. It stays on the system and can be collected after remediation.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "listening_sockets",
+      "name": "Listening sockets",
+      "tier": "network_state",
+      "priority": "recommended",
+      "outcome": "retained",
+      "captured_at_index": null,
+      "first_harm": null,
+      "explanation": "No step in this plan captures it, and no step touches it. It stays on the system and can be collected after remediation.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "interactive_sessions",
+      "name": "Logged-on sessions",
+      "tier": "session_state",
+      "priority": "required",
+      "outcome": "indeterminate",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s016",
+        "action_id": "disable_account",
+        "action_name": "Disable account",
+        "index": 3,
+        "impact": "unknown",
+        "confidence": "unknown",
+        "rationale": "Whether disabling an account ends sessions already established depends on the provider and on token lifetime. It is frequently assumed and frequently untrue."
+      },
+      "explanation": "step 4, \"Disable account\", reaches it with uncharacterised impact and nothing captures it first. Whether it survives cannot be stated from this plan. Whether disabling an account ends sessions already established depends on the provider and on token lifetime. It is frequently assumed and frequently untrue.",
+      "confidence": "unknown",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "active_access_tokens",
+      "name": "Live access and refresh tokens",
+      "tier": "session_state",
+      "priority": "required",
+      "outcome": "lost",
+      "captured_at_index": 4,
+      "first_harm": {
+        "step_id": "s014",
+        "action_id": "token_revoke",
+        "action_name": "Revoke tokens",
+        "index": 1,
+        "impact": "destroys",
+        "confidence": "high",
+        "rationale": "The live token inventory is what is being revoked. Afterwards the set of tokens that existed, and the scopes they carried, is no longer observable from the provider."
+      },
+      "explanation": "step 2, \"Revoke tokens\", destroys it. The capture at step 5 runs after that point, so it collects nothing — the step still costs time on the clock and still yields no evidence. The live token inventory is what is being revoked. Afterwards the set of tokens that existed, and the scopes they carried, is no longer observable from the provider.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "app_session_store",
+      "name": "Application session store",
+      "tier": "session_state",
+      "priority": "recommended",
+      "outcome": "degraded",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s014",
+        "action_id": "token_revoke",
+        "action_name": "Revoke tokens",
+        "index": 1,
+        "impact": "modifies",
+        "confidence": "medium",
+        "rationale": "Sessions backed by a revoked token become invalid and may be reaped."
+      },
+      "explanation": "step 2, \"Revoke tokens\", alters it. Nothing captures it, so what remains collectable is the altered state. Sessions backed by a revoked token become invalid and may be reaped.",
+      "confidence": "medium",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "centralised_logs",
+      "name": "Centralised log copies",
+      "tier": "long_term_record",
+      "priority": "recommended",
+      "outcome": "retained",
+      "captured_at_index": null,
+      "first_harm": null,
+      "explanation": "No step in this plan captures it, and no step touches it. It stays on the system and can be collected after remediation.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "cloud_control_plane_logs",
+      "name": "Cloud control-plane audit log",
+      "tier": "long_term_record",
+      "priority": "required",
+      "outcome": "retained",
+      "captured_at_index": null,
+      "first_harm": null,
+      "explanation": "No step in this plan captures it, and no step touches it. It stays on the system and can be collected after remediation.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "identity_signin_logs",
+      "name": "Identity sign-in logs",
+      "tier": "long_term_record",
+      "priority": "required",
+      "outcome": "preserved",
+      "captured_at_index": 0,
+      "first_harm": null,
+      "explanation": "Captured at step 1 by \"Export identity records\", before anything in this plan touches it.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "identity_audit_logs",
+      "name": "Identity directory audit log",
+      "tier": "long_term_record",
+      "priority": "required",
+      "outcome": "preserved",
+      "captured_at_index": 0,
+      "first_harm": null,
+      "explanation": "Captured at step 1 by \"Export identity records\", before anything in this plan touches it.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    }
+  ],
+  "recommended_outcomes": [
+    {
+      "artifact_id": "running_processes",
+      "name": "Running process list",
+      "tier": "process_state",
+      "priority": "required",
+      "outcome": "retained",
+      "captured_at_index": null,
+      "first_harm": null,
+      "explanation": "No step in this plan captures it, and no step touches it. It stays on the system and can be collected after remediation.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "service_runtime_state",
+      "name": "Service runtime state",
+      "tier": "process_state",
+      "priority": "recommended",
+      "outcome": "retained",
+      "captured_at_index": null,
+      "first_harm": null,
+      "explanation": "No step in this plan captures it, and no step touches it. It stays on the system and can be collected after remediation.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "active_connections",
+      "name": "Established network connections",
+      "tier": "network_state",
+      "priority": "required",
+      "outcome": "retained",
+      "captured_at_index": null,
+      "first_harm": null,
+      "explanation": "No step in this plan captures it, and no step touches it. It stays on the system and can be collected after remediation.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "listening_sockets",
+      "name": "Listening sockets",
+      "tier": "network_state",
+      "priority": "recommended",
+      "outcome": "retained",
+      "captured_at_index": null,
+      "first_harm": null,
+      "explanation": "No step in this plan captures it, and no step touches it. It stays on the system and can be collected after remediation.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "interactive_sessions",
+      "name": "Logged-on sessions",
+      "tier": "session_state",
+      "priority": "required",
+      "outcome": "indeterminate",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s016",
+        "action_id": "disable_account",
+        "action_name": "Disable account",
+        "index": 3,
+        "impact": "unknown",
+        "confidence": "unknown",
+        "rationale": "Whether disabling an account ends sessions already established depends on the provider and on token lifetime. It is frequently assumed and frequently untrue."
+      },
+      "explanation": "step 4, \"Disable account\", reaches it with uncharacterised impact and nothing captures it first. Whether it survives cannot be stated from this plan. Whether disabling an account ends sessions already established depends on the provider and on token lifetime. It is frequently assumed and frequently untrue.",
+      "confidence": "unknown",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "active_access_tokens",
+      "name": "Live access and refresh tokens",
+      "tier": "session_state",
+      "priority": "required",
+      "outcome": "preserved",
+      "captured_at_index": 0,
+      "first_harm": {
+        "step_id": "s014",
+        "action_id": "token_revoke",
+        "action_name": "Revoke tokens",
+        "index": 1,
+        "impact": "destroys",
+        "confidence": "high",
+        "rationale": "The live token inventory is what is being revoked. Afterwards the set of tokens that existed, and the scopes they carried, is no longer observable from the provider."
+      },
+      "explanation": "Captured at step 1 by \"Inventory live tokens\", before anything in this plan touches it.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "app_session_store",
+      "name": "Application session store",
+      "tier": "session_state",
+      "priority": "recommended",
+      "outcome": "degraded",
+      "captured_at_index": null,
+      "first_harm": {
+        "step_id": "s014",
+        "action_id": "token_revoke",
+        "action_name": "Revoke tokens",
+        "index": 1,
+        "impact": "modifies",
+        "confidence": "medium",
+        "rationale": "Sessions backed by a revoked token become invalid and may be reaped."
+      },
+      "explanation": "step 2, \"Revoke tokens\", alters it. Nothing captures it, so what remains collectable is the altered state. Sessions backed by a revoked token become invalid and may be reaped.",
+      "confidence": "medium",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "centralised_logs",
+      "name": "Centralised log copies",
+      "tier": "long_term_record",
+      "priority": "recommended",
+      "outcome": "retained",
+      "captured_at_index": null,
+      "first_harm": null,
+      "explanation": "No step in this plan captures it, and no step touches it. It stays on the system and can be collected after remediation.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "cloud_control_plane_logs",
+      "name": "Cloud control-plane audit log",
+      "tier": "long_term_record",
+      "priority": "required",
+      "outcome": "retained",
+      "captured_at_index": null,
+      "first_harm": null,
+      "explanation": "No step in this plan captures it, and no step touches it. It stays on the system and can be collected after remediation.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "identity_signin_logs",
+      "name": "Identity sign-in logs",
+      "tier": "long_term_record",
+      "priority": "required",
+      "outcome": "preserved",
+      "captured_at_index": 5,
+      "first_harm": null,
+      "explanation": "Captured at step 6 by \"Export identity records\", before anything in this plan touches it.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    },
+    {
+      "artifact_id": "identity_audit_logs",
+      "name": "Identity directory audit log",
+      "tier": "long_term_record",
+      "priority": "required",
+      "outcome": "preserved",
+      "captured_at_index": 5,
+      "first_harm": null,
+      "explanation": "Captured at step 6 by \"Export identity records\", before anything in this plan touches it.",
+      "confidence": "high",
+      "accepted_loss_id": null
+    }
+  ],
+  "sequence": {
+    "steps": [
+      {
+        "order": 1,
+        "kind": "capture",
+        "step_id": "s017",
+        "action_id": "capture_token_inventory",
+        "name": "Inventory live tokens",
+        "artifact_ids": [
+          "active_access_tokens"
+        ],
+        "estimated_minutes": 6,
+        "offset_minutes": 0,
+        "why_now": "Live access and refresh tokens decay on their own — connections close, processes exit, caches expire — so this runs first regardless of what the plan does. \"Revoke tokens\" is the first step in this plan that reaches them; after it, this capture would collect nothing.",
+        "at_risk": [
+          "Live access and refresh tokens"
+        ],
+        "enables": "Revoke tokens",
+        "lost_after": [],
+        "confidence": "medium",
+        "gate": 0
+      },
+      {
+        "order": 2,
+        "kind": "remediation",
+        "step_id": "s014",
+        "action_id": "token_revoke",
+        "name": "Revoke tokens",
+        "artifact_ids": [],
+        "estimated_minutes": 4,
+        "offset_minutes": 6,
+        "why_now": "A remediation step. Nothing in the evidence catalogue is lost at this point.",
+        "at_risk": [],
+        "enables": null,
+        "lost_after": [],
+        "confidence": "medium",
+        "gate": null
+      },
+      {
+        "order": 3,
+        "kind": "remediation",
+        "step_id": "s015",
+        "action_id": "credential_rotate",
+        "name": "Rotate credential",
+        "artifact_ids": [],
+        "estimated_minutes": 10,
+        "offset_minutes": 10,
+        "why_now": "A remediation step. Nothing in the evidence catalogue is lost at this point.",
+        "at_risk": [],
+        "enables": null,
+        "lost_after": [],
+        "confidence": "medium",
+        "gate": null
+      },
+      {
+        "order": 4,
+        "kind": "remediation",
+        "step_id": "s016",
+        "action_id": "disable_account",
+        "name": "Disable account",
+        "artifact_ids": [],
+        "estimated_minutes": 3,
+        "offset_minutes": 20,
+        "why_now": "A remediation step. Nothing in the evidence catalogue is lost at this point.",
+        "at_risk": [],
+        "enables": null,
+        "lost_after": [],
+        "confidence": "medium",
+        "gate": null
+      },
+      {
+        "order": 5,
+        "kind": "remediation",
+        "step_id": "s018",
+        "action_id": "verify_remediation",
+        "name": "Verify remediation",
+        "artifact_ids": [],
+        "estimated_minutes": 10,
+        "offset_minutes": 23,
+        "why_now": "A remediation step. Nothing in the evidence catalogue is lost at this point.",
+        "at_risk": [],
+        "enables": null,
+        "lost_after": [],
+        "confidence": "high",
+        "gate": null
+      },
+      {
+        "order": 6,
+        "kind": "capture",
+        "step_id": "s013",
+        "action_id": "capture_identity_logs",
+        "name": "Export identity records",
+        "artifact_ids": [
+          "identity_signin_logs",
+          "identity_audit_logs"
+        ],
+        "estimated_minutes": 14,
+        "offset_minutes": 33,
+        "why_now": "Nothing in this plan reaches Identity sign-in logs and Identity directory audit log, so this capture is not racing anything. It is placed after remediation so it does not spend time on the clock before the fix. Platform retention, not this plan, is what bounds it.",
+        "at_risk": [
+          "Identity sign-in logs",
+          "Identity directory audit log"
+        ],
+        "enables": null,
+        "lost_after": [],
+        "confidence": "high",
+        "gate": null
+      }
+    ],
+    "gates": [
+      {
+        "gate": 0,
+        "before_step_id": "s014",
+        "before_action_id": "token_revoke",
+        "before_action_name": "Revoke tokens",
+        "artifact_ids": [
+          "active_access_tokens"
+        ],
+        "reason": "\"Revoke tokens\" is the first step in this plan that reaches Live access and refresh tokens. Everything in this gate has to be collected before the step below it runs."
+      }
+    ],
+    "order": [
+      "s017",
+      "s014",
+      "s015",
+      "s016",
+      "s018",
+      "s013"
+    ],
+    "matches_plan_order": false
+  },
+  "feasibility": {
+    "status": "feasible",
+    "preservation_minutes": 20,
+    "remediation_minutes": 27,
+    "verification_minutes": 20,
+    "buffer_minutes": 30,
+    "total_minutes": 97,
+    "available_minutes": 1150,
+    "slack_minutes": 1053,
+    "utilisation": 0.08434782608695653,
+    "unknown_duration_count": 0,
+    "explanation": "1h 37m of work against a 19h 10m window, using 8% of it, leaving 17h 33m. Preservation and remediation both fit with room."
+  },
+  "conflicts": [
+    {
+      "conflict_id": "loss_undocumented",
+      "kind": "undocumented_loss",
+      "severity": "high",
+      "title": "1 artifact will not survive this plan and 1 may not, and nobody has signed for any of them",
+      "detail": "Logged-on sessions and Live access and refresh tokens. Losing evidence during remediation is frequently the right call. Losing it without a record of who decided and why is the part that becomes a problem six months later, when somebody asks what was known at the time.",
+      "options": [
+        "Record an accepted loss for each artifact, naming the decision owner and the residual risk.",
+        "Reorder so the captures precede the destructive steps.",
+        "Reduce the remediation to steps that do not destroy this evidence, if an equivalent mitigation exists."
+      ],
+      "subject_ids": [
+        "interactive_sessions",
+        "active_access_tokens"
+      ],
+      "resolved_by": null
+    },
+    {
+      "conflict_id": "ordering_cost",
+      "kind": "ordering",
+      "severity": "high",
+      "title": "1 artifact fares worse than the remediation requires",
+      "detail": "Live access and refresh tokens ends up worse under the plan as written than under the recommended sequence. The steps are the same and the remediation is unchanged; only the order differs. 1 of 1 is marked required.",
+      "options": [
+        "Adopt the recommended sequence. It contains the same steps and the same remediation.",
+        "Move the affected captures ahead of the steps that reach their artifacts.",
+        "Keep the current order and record each loss as a decision, with a reason."
+      ],
+      "subject_ids": [
+        "active_access_tokens"
+      ],
+      "resolved_by": null
+    },
+    {
+      "conflict_id": "uncaptured_required",
+      "kind": "uncaptured_required",
+      "severity": "high",
+      "title": "1 required artifact has no capture step in this plan",
+      "detail": "Logged-on sessions is marked required, and the plan contains a step that reaches it. Nothing in the plan collects it first. What goes unanswered: Logged-on sessions — Who is logged in right now, from where, and since when?",
+      "options": [
+        "Add the corresponding capture steps before the steps that reach them.",
+        "Downgrade any artifact the investigation does not in fact need, so the plan stops claiming to require it.",
+        "Record each loss as a decision, with a named owner and the residual risk."
+      ],
+      "subject_ids": [
+        "interactive_sessions"
+      ],
+      "resolved_by": null
+    },
+    {
+      "conflict_id": "unknown_s016",
+      "kind": "unknown_impact",
+      "severity": "high",
+      "title": "\"Disable account\" has an uncharacterised effect on 1 artifact",
+      "detail": "The library characterises most of what this step does, but not its effect on Logged-on sessions. Unknown is not safe and it is not destroyed. Nothing downstream will report these artifacts as preserved or as lost, and the decision about how to treat them belongs to a human who can find out.",
+      "options": [
+        "Ask the vendor or platform owner what the procedure touches, and record the answer in the action library.",
+        "Treat the affected artifacts as at risk and capture them beforehand — the conservative reading, at the cost of the capture time.",
+        "Accept the uncertainty explicitly, so that \"we did not know\" is on the record rather than implied."
+      ],
+      "subject_ids": [
+        "interactive_sessions"
+      ],
+      "resolved_by": null
+    },
+    {
+      "conflict_id": "unusable_s017",
+      "kind": "unusable_capture",
+      "severity": "high",
+      "title": "\"Inventory live tokens\" cannot collect anything at that point",
+      "detail": "Every artifact this step acquires — Live access and refresh tokens — has already been destroyed by an earlier step. The capture still takes 6m off the clock and yields nothing.",
+      "options": [
+        "Move the capture before the step that destroys its artifacts.",
+        "Remove the step, and record the loss instead."
+      ],
+      "subject_ids": [
+        "active_access_tokens"
+      ],
+      "resolved_by": null
+    }
+  ],
+  "unknowns": [
+    {
+      "action_id": "disable_account",
+      "action_name": "Disable account",
+      "step_id": "s016",
+      "artifact_ids": [
+        "interactive_sessions"
+      ],
+      "reason": "The library characterises most of what this step does, but not its effect on Logged-on sessions.",
+      "recommendation": "Unknown is not safe and it is not destroyed. Nothing downstream will report these artifacts as preserved or as lost, and the decision about how to treat them belongs to a human who can find out."
+    }
+  ],
+  "summary": {
+    "asset_name": "sp-reporting-exporter (tenant: corp)",
+    "asset_type": "saas_identity",
+    "tier_label": "Critical — 24 hour",
+    "deadline_label": "24-hour credential response",
+    "step_count": 6,
+    "capture_step_count": 2,
+    "harmful_step_count": 3,
+    "artifact_count": 11,
+    "outcomes": {
+      "preserved": 2,
+      "degraded": 1,
+      "lost": 1,
+      "retained": 6,
+      "indeterminate": 1,
+      "accepted_loss": 0
+    },
+    "conflict_count": 5,
+    "unknown_impact_count": 1,
+    "accepted_loss_count": 0,
+    "override_count": 0,
+    "feasibility": "feasible"
+  },
+  "assumptions": [
+    "Steps run one after another on a single worker. Two captures that could genuinely run in parallel are counted twice against the clock, so the total is conservative.",
+    "The evidence catalogue is scoped to saas identity system. Artifacts that do not apply to this asset type are not offered and are not counted as lost.",
+    "Durations are order-of-magnitude figures from the catalogue, adjusted by any per-step override in this plan. They are not measurements of your environment.",
+    "Verification (20 min) and contingency buffer (30 min) are counted against the window as stated in the plan.",
+    "The remediation tier and the deadline are inputs. TOURNIQUET does not assess how urgent this vulnerability is and cannot tell you whether the tier is right."
+  ],
+  "limitations": [
+    "TOURNIQUET plans an order. It does not acquire evidence, does not execute remediation, and has no connection to any system.",
+    "The action-to-evidence mappings are a synthetic library written for this tool. They describe how these platforms generally behave; they are not vendor statements and they are not tested against your build.",
+    "Confidence is declared per mapping and propagated. It is not derived from any corpus, and \"high\" means \"follows from how the platform works\", not \"measured\".",
+    "An artifact reported as retained is retained under the plan as analysed. Anything not in the plan — a colleague restarting the service, an autoscaler replacing the node — is outside what this can see.",
+    "Timestamps, package state and local logs are attacker-modifiable. Preserving them preserves what is there, which is not the same as preserving the truth.",
+    "The tool cannot tell you whether an investigation is warranted. It tells you what a given remediation would cost you if one turned out to be."
+  ]
+}
