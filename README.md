@@ -46,22 +46,23 @@ evidence needed to determine whether there was anything to investigate".
 
 ## The problem, drawn
 
-```mermaid
-flowchart TB
-    subgraph S1 ["Without sequencing"]
-        direction LR
-        V1[Vulnerability] --> P1[Patch and restart]
-        P1 --> D1["Memory, processes and<br/>handles destroyed"]
-        D1 --> U1["Cannot determine whether<br/>compromise occurred"]
-    end
+**Without sequencing**
 
-    subgraph S2 ["With sequencing"]
-        direction LR
-        V2[Vulnerability] --> C2["Capture, in order<br/>of volatility"]
-        C2 --> P2[Patch and restart]
-        P2 --> R2[Verify]
-        R2 --> K2["Defensible state: evidence held,<br/>fix applied, losses on the record"]
-    end
+```mermaid
+flowchart LR
+    V1[Vulnerability] --> P1[Patch and restart]
+    P1 --> D1["Memory, processes and<br/>handles destroyed"]
+    D1 --> U1["Cannot determine whether<br/>compromise occurred"]
+```
+
+**With sequencing**
+
+```mermaid
+flowchart LR
+    V2[Vulnerability] --> C2["Capture, in order<br/>of volatility"]
+    C2 --> P2[Patch and restart]
+    P2 --> R2[Verify]
+    R2 --> K2["Defensible state: evidence held,<br/>fix applied, losses on the record"]
 ```
 
 Same steps. Same remediation. Same deadline. The difference is the order — and
