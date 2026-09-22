@@ -1,0 +1,339 @@
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/space-grotesk';
+@import '@fontsource/ibm-plex-mono/400.css';
+@import '@fontsource/ibm-plex-mono/500.css';
+@import '@fontsource/ibm-plex-mono/600.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ------------------------------------------------------------------------ */
+/* Tokens                                                                   */
+/*                                                                          */
+/* Two colour axes, and keeping them apart is the whole design.             */
+/*                                                                          */
+/*   ROLE   what a thing *is*. `accent` is the product's own voice and the  */
+/*          primary action. `link` (cyan) means a relationship between two  */
+/*          objects -- an action reaching an artifact. `time` (gold) is the */
+/*          clock and pressure from it, and nothing else.                   */
+/*                                                                          */
+/*   FATE   what happens to a piece of evidence. Five states that appear in */
+/*          the same legend: preserved, degraded, lost, unknown, retained.  */
+/*                                                                          */
+/* The fate hues are the ones a reader has to tell apart at a glance, so    */
+/* they were solved rather than chosen: each is the least saturated colour  */
+/* at an assigned luminance band, and the bands are spaced so that every    */
+/* pair of the four chromatic fates is at least 1.2:1 apart in contrast     */
+/* while each still clears WCAG AA large text against the lightest surface  */
+/* it sits on. `retained` is a deliberate near-neutral -- an artifact       */
+/* nothing touches should not compete with one being destroyed.             */
+/*                                                                          */
+/* The role hues never share a legend with the fate hues, so they need AA   */
+/* and a distinct hue family rather than pairwise separation from them.     */
+/* Two adjacent pairs are checked anyway because they are the ones a reader */
+/* could plausibly confuse: `time` (gold) against `degraded` (orange), and  */
+/* `link` (cyan) against `accent` (blue).                                   */
+/*                                                                          */
+/* src/ui/tokens.test.ts asserts all of it off these exact numbers, so a    */
+/* palette edit that breaks contrast fails the test run rather than         */
+/* shipping. An earlier hand-tuned pass had two fates 1.14:1 apart, which   */
+/* is to say the same colour.                                               */
+/*                                                                          */
+/* Dark is primary and has five surface levels rather than four: a          */
+/* selected row has to be distinguishable from a hovered one, and on a      */
+/* near-black ground that needs its own step.                               */
+/* ------------------------------------------------------------------------ */
+
+:root,
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* A deep indigo-tinted ink rather than a neutral near-black. Pure grey
+     reads as "unstyled dark mode"; a trace of blue in the ground makes the
+     one warm hue on screen -- the clock -- feel like a deliberate choice
+     rather than an accident of the palette. */
+  --surface-0: 11 14 20; /* #0B0E14  the page itself */
+  --surface-1: 17 21 30; /* #11151E  panels */
+  --surface-2: 22 27 38; /* #161B26  rows, raised */
+  --surface-3: 30 36 49; /* #1E2431  hover, inputs */
+  --surface-4: 40 48 63; /* #28303F  focused / selected: the lightest thing text sits on */
+  --surface-inset: 8 10 15; /* #080A0F  wells, code blocks, chart grounds */
+
+  --line-1: 33 40 53;
+  --line-2: 48 58 75;
+  --line-3: 72 86 108;
+
+  --ink-0: 240 244 250;
+  --ink-1: 188 198 213;
+  --ink-2: 165 177 194;
+  --ink-3: 133 146 166;
+
+  /* Role: what a thing is. */
+  --accent: 117 162 215; /* primary action, the product's own voice */
+  --accent-strong: 166 201 238;
+  --accent-dim: 34 58 86;
+  --link: 116 194 202; /* a relationship between two things */
+  --time: 212 190 125; /* the clock, and pressure from it */
+
+  /* Fate: what happens to evidence. */
+  --state-preserved: 102 183 151;
+  --state-degraded: 194 141 94;
+  --state-lost: 188 92 95;
+  --state-unknown: 155 121 200;
+  --state-retained: 136 141 147;
+
+  --shadow-alpha-1: 0.5;
+  --shadow-alpha-2: 0.7;
+
+  --grid-line: 255 255 255;
+  --grid-alpha: 0.022;
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+
+  /* A tinted paper rather than white. Panels are near-white and lift off it,
+     which is what gives the light theme any depth at all -- white panels on
+     a white page need a border to exist, and a screen held together by
+     borders reads as a form. */
+  --surface-0: 233 237 244; /* #E9EDF4  the page itself */
+  --surface-1: 252 253 254; /* #FCFDFE  panels */
+  --surface-2: 244 247 251; /* #F4F7FB  rows */
+  --surface-3: 226 233 242; /* #E2E9F2  hover, inputs */
+  --surface-4: 212 220 232; /* #D4DCE8  focused / selected */
+  --surface-inset: 237 241 247;
+
+  --line-1: 223 229 238;
+  --line-2: 199 209 223;
+  --line-3: 158 172 191;
+
+  --ink-0: 11 15 21;
+  --ink-1: 52 64 80;
+  --ink-2: 70 82 100;
+  --ink-3: 90 102 120;
+
+  --accent: 39 93 155;
+  --accent-strong: 24 66 117;
+  --accent-dim: 193 217 240;
+  --link: 31 112 124;
+  --time: 135 101 34;
+
+  --state-preserved: 36 123 88;
+  --state-degraded: 174 108 50;
+  --state-lost: 152 44 48;
+  --state-unknown: 122 63 199;
+  --state-retained: 98 104 111;
+
+  --shadow-alpha-1: 0.08;
+  --shadow-alpha-2: 0.16;
+
+  --grid-line: 13 17 23;
+  --grid-alpha: 0.03;
+}
+
+@layer base {
+  * {
+    border-color: rgb(var(--line-1));
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-surface-0 text-ink-0 font-sans text-base antialiased;
+
+    /* Inter's variable axes and the character variants that make it read as
+       a considered typeface rather than a default. `cv05` gives the
+       single-storey l a tail, which is what stops `Il1` being ambiguous in
+       an identifier; `cv11` is the single-storey a; `ss03` is the curved
+       round quotes. `calt` and `liga` stay on for the arrows and dashes this
+       interface uses heavily. */
+    font-optical-sizing: auto;
+    font-variation-settings: 'opsz' 20;
+    font-feature-settings: 'cv05' 1, 'cv11' 1, 'ss03' 1, 'calt' 1, 'liga' 1;
+    text-rendering: optimizeLegibility;
+    -moz-osx-font-smoothing: grayscale;
+
+    /* Almost every sentence in this interface is generated prose with an
+       operator-supplied identifier interpolated into it -- "rebooting
+       FIN-WEB-01.prod.internal destroys ..." -- and an unbreakable
+       87-character token in a 375px column takes the whole page into
+       horizontal scroll. `break-word` breaks such a token only when it would
+       otherwise overflow and leaves ordinary text alone. Identifiers rendered
+       on their own get `.ident`, which is more aggressive. */
+    overflow-wrap: break-word;
+  }
+
+  /* Durations, counts and clocks must line up column to column. */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+  }
+
+  ::selection {
+    background: rgb(var(--accent) / 0.28);
+  }
+
+  :focus-visible {
+    outline: 2px solid rgb(var(--accent));
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
+
+  /* Only scrollable regions get a visible bar, and it stays out of the way
+     until the region is hovered. */
+  .scroll-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--line-2)) transparent;
+  }
+  .scroll-thin::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  .scroll-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scroll-thin::-webkit-scrollbar-thumb {
+    background: rgb(var(--line-2));
+    border: 3px solid transparent;
+    background-clip: content-box;
+    border-radius: 999px;
+  }
+  .scroll-thin:hover::-webkit-scrollbar-thumb {
+    background: rgb(var(--line-3));
+    background-clip: content-box;
+  }
+}
+
+/* ------------------------------------------------------------------------ */
+/* Keyframes                                                                */
+/*                                                                          */
+/* Declared here, not only in tailwind.config.js. Tailwind emits a           */
+/* @keyframes block only for animation *utilities* it finds in the markup,   */
+/* and the ones below are used by the hand-written component classes in this */
+/* file rather than by `animate-*` classes. Relying on the config alone      */
+/* means the names never resolve and the animation silently never runs.      */
+/* ------------------------------------------------------------------------ */
+
+@keyframes sever {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes waver {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+@keyframes dash-drift {
+  to {
+    stroke-dashoffset: -16;
+  }
+}
+
+@layer components {
+  /* The faint engineering grid behind the timeline and the signature
+     diagram. It is structure, not decoration: the action ticks land on it. */
+  .grid-field {
+    background-image:
+      linear-gradient(rgb(var(--grid-line) / var(--grid-alpha)) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(var(--grid-line) / var(--grid-alpha)) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  /* A scroll region the reader drags or swipes, where a visible bar is noise
+     rather than affordance. */
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Identifier text.
+   *
+   * Hostnames, action ids and artifact ids are single unbroken tokens that can
+   * be arbitrarily long -- an operator pasting a full cloud resource ARN is a
+   * real shape -- and a token wider than its column pushes the whole page into
+   * horizontal scroll. `anywhere` breaks mid-token as a last resort without
+   * adding the hyphens `break-all` would imply are part of the name. */
+  .ident {
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  /* Hatching carries "unknown" without relying on the violet: the pattern
+     survives greyscale, a colour-blind reader and a printed report. */
+  .hatch {
+    background-image: repeating-linear-gradient(-45deg, currentColor 0 1px, transparent 1px 5px);
+  }
+
+  /* -------------------------------------------------------------------- */
+  /* The loss boundary                                                    */
+  /*                                                                      */
+  /* The product's one signature mark: a thin vertical rule that divides   */
+  /* what can still be known from what has already been lost. It is drawn  */
+  /* as a hairline with a soft bleed to its right, because the reader      */
+  /* should feel the right-hand side as the side where information has     */
+  /* stopped arriving.                                                     */
+  /* -------------------------------------------------------------------- */
+  .loss-boundary {
+    background: rgb(var(--state-lost));
+    box-shadow:
+      0 0 0 0.5px rgb(var(--state-lost) / 0.9),
+      6px 0 18px -6px rgb(var(--state-lost) / 0.55);
+  }
+
+  /* The region to the right of the boundary: the part of the plan that has
+     not run yet. A neutral scrim, deliberately not the loss hue — the first
+     pass tinted it red, which said "everything ahead of you is already lost"
+     and washed the entire diagram pink at the default position. */
+  .future {
+    background: linear-gradient(
+      90deg,
+      rgb(var(--surface-0) / 0.55) 0%,
+      rgb(var(--surface-0) / 0.4) 100%
+    );
+  }
+
+  /* Unknown impact does not resolve. It breathes and never settles -- the
+     visual equivalent of "the plan does not say". */
+  .unresolved {
+    animation: waver 2.4s ease-in-out infinite;
+  }
+
+  .flow {
+    stroke-dasharray: 5 7;
+    animation: dash-drift 1.4s linear infinite;
+  }
+}
+
+/* A reader who has asked their operating system to stop moving things gets a
+   static interface. Every state is still distinguishable, because none of them
+   was ever carried by motion alone: preserved is solid, unknown is hatched,
+   lost stops at a hard cap, and all five carry a glyph and a word. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .unresolved {
+    opacity: 0.75;
+  }
+}

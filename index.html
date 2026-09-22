@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TOURNIQUET — remediation evidence preservation planner</title>
+    <meta
+      name="description"
+      content="Before you fix it, know what you will lose. TOURNIQUET works out what each remediation step destroys, what has to be captured first, the order that preserves the most, and whether that fits the deadline you were given."
+    />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#0B0E14" />
+    <meta name="referrer" content="no-referrer" />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+
+    <!--
+      The whole analysis runs in this page. The policy below is enforced by the
+      browser rather than only claimed in a README: `connect-src 'none'` means
+      this page cannot make a request even if a future change tried to, and
+      nothing may be loaded from any origin but this one.
+
+      `style-src 'unsafe-inline'` is needed because the interface sets a handful
+      of computed inline styles — a meter's width, a bar's position on the
+      timeline, the offset of the loss boundary. Those are numbers produced by
+      the analysis, never text taken from a loaded plan.
+
+      `frame-ancestors` is deliberately absent. A browser ignores it when it
+      arrives in a meta element, so claiming it here would be theatre; it
+      belongs in a response header, and SECURITY.md says which one.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:; connect-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'"
+    />
+
+    <style>
+      /* Painted before the bundle parses, so the first frame is not white. */
+      html {
+        background: #0b0e14;
+      }
+      html[data-theme='light'] {
+        background: #e9edf4;
+      }
+      #root:empty::after {
+        content: '';
+        display: block;
+        height: 100vh;
+      }
+    </style>
+
+    <!--
+      Deliberately not `type="module"`, which Vite will warn about. A module
+      script is deferred, and a deferred theme bootstrap runs after first paint
+      — which is the one thing this tag exists to prevent.
+    -->
+    <script src="./theme.js"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>
+      <div style="padding: 48px; font-family: system-ui, sans-serif; color: #f0f4f9">
+        <h1 style="font-size: 20px; margin: 0 0 12px">TOURNIQUET needs JavaScript</h1>
+        <p style="max-width: 46em; line-height: 1.6; color: #9eaabc; margin: 0 0 12px">
+          The analysis runs in this page rather than on a server, which is what keeps your
+          remediation plan in your browser. There is no server-rendered equivalent because there
+          is no server.
+        </p>
+        <p style="max-width: 46em; line-height: 1.6; color: #9eaabc; margin: 0">
+          The command line tool does the same work with no browser at all:
+          <code style="font-family: ui-monospace, monospace"
+            >node bin/tourniquet.ts analyse plan.json</code
+          >
+        </p>
+      </div>
+    </noscript>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
