@@ -47,23 +47,21 @@ evidence needed to determine whether there was anything to investigate".
 ## The problem, drawn
 
 ```mermaid
-flowchart LR
-    subgraph without ["Without sequencing"]
-        direction TB
+flowchart TB
+    subgraph S1 ["Without sequencing"]
+        direction LR
         V1[Vulnerability] --> P1[Patch and restart]
-        P1 --> D1[Memory, processes,<br/>handles destroyed]
-        D1 --> U1[Cannot determine<br/>whether compromise occurred]
+        P1 --> D1["Memory, processes and<br/>handles destroyed"]
+        D1 --> U1["Cannot determine whether<br/>compromise occurred"]
     end
 
-    subgraph with ["With sequencing"]
-        direction TB
-        V2[Vulnerability] --> C2[Capture, in order<br/>of volatility]
+    subgraph S2 ["With sequencing"]
+        direction LR
+        V2[Vulnerability] --> C2["Capture, in order<br/>of volatility"]
         C2 --> P2[Patch and restart]
         P2 --> R2[Verify]
-        R2 --> K2[Defensible state:<br/>evidence held, fix applied,<br/>losses on the record]
+        R2 --> K2["Defensible state: evidence held,<br/>fix applied, losses on the record"]
     end
-
-    without ~~~ with
 ```
 
 Same steps. Same remediation. Same deadline. The difference is the order — and
@@ -93,17 +91,16 @@ request.
 
 ```mermaid
 flowchart TD
-    A["Remediation plan<br/><i>steps the operator wrote</i>"] --> B[Action library]
-    B --> C["Impact resolver<br/><i>artifact, then tag, then tier, then default</i>"]
-    C --> D["Volatility ladder<br/><i>8 tiers, ordered</i>"]
-    D --> E["Outcome simulation<br/><i>what survives this order</i>"]
-    E --> F["Preservation sequencer<br/><i>gates, most volatile first</i>"]
-    F --> G["Deadline engine<br/><i>does it fit?</i>"]
-    G --> H["Conflict detection<br/><i>where it does not</i>"]
-    H --> I["Decision records<br/><i>what a human signed for</i>"]
-    I --> J["Report<br/><i>Markdown, HTML, JSON</i>"]
-
-    E -.->|"second pass, recommended order"| F
+    A["Remediation plan<br/>the steps the operator wrote"] --> B[Action library]
+    B --> C["Impact resolver<br/>artifact, then tag, then tier, then default"]
+    C --> D["Volatility ladder<br/>eight tiers, ordered"]
+    D --> E["Outcome simulation<br/>what survives this order"]
+    E --> F["Preservation sequencer<br/>gates, most volatile first"]
+    F --> G["Deadline engine<br/>does it fit?"]
+    G --> H["Conflict detection<br/>where it does not"]
+    H --> I["Decision records<br/>what a human signed for"]
+    I --> J["Report<br/>Markdown, HTML, JSON"]
+    E -.-> F
 ```
 
 Step by step:
