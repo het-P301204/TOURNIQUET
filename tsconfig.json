@@ -1,0 +1,37 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+
+    "noEmit": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+
+    // The CLI runs the engine's `.ts` sources directly through Node's native
+    // type stripping -- no build step, no dependencies. Three rules follow for
+    // everything reachable from `bin/`: import specifiers carry their real
+    // `.ts` extension, type-only imports are marked `import type` so they
+    // erase on sight, and no TypeScript construct that needs a runtime emit
+    // appears anywhere in the graph -- no `enum`, no `namespace`, no
+    // constructor parameter properties.
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "types": ["vite/client", "node"]
+  },
+  "include": ["src", "bin", "scripts", "vite.config.ts", "vitest.config.ts", "eslint.config.js"],
+
+  // Imports Playwright, which is deliberately not a dependency: nothing in the
+  // test suite, the build or CI needs a browser.
+  "exclude": ["scripts/screenshots.ts"]
+}

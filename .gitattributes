@@ -1,0 +1,14 @@
+# Normalise line endings so a checkout on Windows and one on Linux produce the
+# same bytes, and the fixture check does not fail on CRLF alone.
+* text=auto eol=lf
+
+# Binary: never normalised, never diffed as text.
+*.png binary
+*.woff binary
+*.woff2 binary
+
+# Generated. Collapsed in review because a diff of a 200 kB analysis is not
+# something a human reads line by line; the check that matters is whether it
+# changed at all.
+fixtures/*.json linguist-generated=true
+docs/screenshots/*.png linguist-generated=true
